@@ -141,16 +141,7 @@ xlabel!("State index")
 ylabel!("Coefficient of state")
 ```
 
-<!-- To verify that it works, we will find the value of the largest value amplitude (can be seen easily in @fig-test-case):
-
-```{julia}
-#| label: optimal-state
-max_coeff, max_index = findmax(abs.(ψ))
-max_index = IndexToState(max_index, N)
-print(max_index)
-```
-
-This is not exactly what we expected. --> We will calculate the energy of the ground state and of the output state. The function which calculates the energy is the following:
+We will calculate the energy of the ground state and of the output state, and see that the output state approaches the ground state. The function which calculates the energy is simple:
 
 ```{julia}
 #| output: false
@@ -159,6 +150,60 @@ function E(ψ::Vector{Float64})
   return ψ'⋅MultiplyByHamiltonian(ψ, 1.0)
 end
 ```
+
+The ground state for $N$ spins in chain is Ferromagnetic for $J>0$ and Antiferromagnetic for $J<0$. So the function which generates the ground state is the following:
+
+```{julia}
+function HeisenbergGroundState(N::Int, J::Float64)
+  @assert N>0 "Spin count must be positive"
+  @assert J != 0 "Coupling constant cannot be zero"
+  D = 2^N
+
+  ψ = zeros(D)
+  stateInd = 0
+  for spinInd in range(0, length=N)
+    if J < 0 && mod(spinInd, 2) == 0
+      continue
+    end
+    stateInd += 2^spinInd
+  end
+  print(IndexToState(stateInd, N))
+  ψ[stateInd] = 1
+  return ψ
+end
+
+HeisenbergGroundState(N, J)
+```
+
+Let's use them to verify the state actually gets closer to the ground state:
+
+```{julia}
+#| label: test-energies
+J = -1.0
+N = 4
+ψ = normalize(rand(rng,2^N))
+ψ_opt = HeisenbergGroundState(N, J)
+# print(2^N, " ", length(ψ), " ", length(ψ_opt), "\n")
+
+iter_num = 30
+E_rng = zeros(iter_num)
+E_opt = zeros(iter_num)
+for ind in range(1, length=iter_num)
+  ψ = MultiplyByHamiltonian(ψ, 1.0);
+  E_rng[ind] = E(ψ)
+  E_opt[ind] = E(ψ_opt)
+end
+plot(E_rng, label="Repeated Applications")
+plot!(E_opt, label="Ground State")
+title!("Energy over repeated applications of H")
+xlabel!("Application Count")
+ylabel!("Energy of State")
+```
+
+# Question #1: 
+
+
+## Appendix #1: Dimer State
 
 We will also need a function which generates the ground state, which is a dimer state. Since this is a product of dimers of the kind $\ket{\uparrow \downarrow}-\ket{\downarrow \uparrow}$ the final state will have all of the possible combinations of pairs: up-down or down-up for each pair. The weight of them will be equal, but the sign will flip with each addition of down-up pair. All of this is summarized in the following function:
 
@@ -199,32 +244,3 @@ plot!(ψ_opt_m, label="ψ-")
 ```
 1. Assert the inputs are correct
 2. Loop over all possible state pairs
-
-Let's use them to verify the state actually gets closer to the ground state:
-
-```{julia}
-#| label: test-energies
-N = 16
-ψ = normalize(rand(rng,2^N))
-(ψ_opt_p, ψ_opt_m) = GenerateDimerState(N)
-# print(2^N, " ", length(ψ), " ", length(ψ_opt), "\n")
-
-iter_num = 30
-E_rng = zeros(iter_num)
-E_opt_p = zeros(iter_num)
-E_opt_m = zeros(iter_num)
-for ind in range(1, length=iter_num)
-  ψ = MultiplyByHamiltonian(ψ, 1.0);
-  E_rng[ind] = E(ψ)
-  E_opt_p[ind] = E(ψ_opt_p)
-  E_opt_m[ind] = E(ψ_opt_m)
-end
-plot(E_rng, label="Repeated Applications")
-plot!(E_opt_p, label="Dimer State +")
-plot!(E_opt_m, label="Dimer State -")
-title!("Energy over repeated applications of H")
-xlabel!("Application Count")
-ylabel!("Energy of State")
-```
-
-# Question #1: 
