@@ -1,0 +1,230 @@
+---
+title: "Numerical Methods for Manu Body Physics, Assignment #1"
+author: "Yoav Zack"
+date: today
+format:
+  html:
+    theme: 
+      light: united
+      dark: darkly
+    code-annotations: hover
+    mainfont: "Alef"
+    monofont: "JetBrains Mono"
+---
+
+```{julia}
+#| output: false
+#| echo: false
+#| label: imports-and-constants
+using LinearAlgebra
+using Random
+using Plots
+using Printf
+
+theme(:dracula)
+# theme(:default)
+default(background_color=:transparent, dpi=300)
+
+rng = MersenneTwister(42);
+```
+
+```{julia}
+#| echo: false
+#| output: false
+#| label: function-flip-spins
+function FlipSpins(x, i, j)
+  f = typeof(x)(1) << (i-1) | typeof(x)(1) << (j-1) # <1>
+  return x ⊻ f
+end
+
+function bitarr_to_int(arr)
+  return sum(arr .* (2 .^ collect(0:length(arr)-1))) # <2>
+end
+```
+1. Given in the tutorial
+2. Copied from [here](https://discourse.julialang.org/t/parse-an-array-of-bits-bitarray-to-an-integer/42361/2)
+
+In this assignment we will work on the $(J_1,J_2)$ spin-$\frac{1}{2}$ extension to the [Heisenberg model](https://en.wikipedia.org/wiki/Quantum_Heisenberg_model), which is sometimes called the [J1-J2 Model](https://en.wikipedia.org/wiki/J1_J2_model):
+
+$$
+H = J_1 \sum_{i} \vec{S}_{i} \cdot \vec{S}_{i+1} + J_{2} \sum_{i}\vec{S}_{i} \cdot \vec{S}_{i+2}
+$$
+
+We assume $J_1 >0, J_2 \geq 0$ and denote $g = J_2/J_1$.
+
+# Question #0: Warm Up
+
+We assume $J_2=0$ as required, thus the Hamiltonian is the Heisenberg one:
+
+$$
+H = J_1 \sum_{i} \vec{S}_{i} \cdot \vec{S}_{i+1} = J_{1} \sum_{\left<i,j\right>} \left[\frac{1}{2}(\sigma^+_i \sigma^-_j + \sigma^-_i \sigma^+_j) +\frac{1}{4} \sigma^z_i \sigma^z_j \right]
+$$
+
+This means the for each pair of adjacent spins $i,j$, the state $\ket{\psi}$ turns into a sum of two elements:
+
+1. A state with switched places for all pairs of opposite spins, with coefficient $\frac{J_1}{2}$.
+2. The same state as $\ket{\psi}$, with a coefficient which is the sum over all pairs of adjacent spins, $+1$ for identical spins and $-1$ for opposite spins. This with coefficient $\frac{J_1}{4}$.
+
+Note that this means that the state $\ket{\psi}$ of the system must be represented as an array of real numbers, each on corresponding to the coefficient of a single pure state in the superposition, while each pure state is still a single `UInt`.
+
+In `Julia`, assuming the basis states are integers as shown in the tutorial, but the wavefunction itself is an array of complex amplitudes. We can convert from the index of a state to itself using the following function:
+
+```{julia}
+#| output: false
+#| label: function-index-to-state
+function IndexToState(stateInd::Int, N::Int)
+  return digits(stateInd, base=2, pad=N)
+end
+```
+
+And now that we have that, we will use it to calculate the effect of the Hamiltonian on a general wave function:
+
+```{julia}
+#| output: false
+#| label: function-hamiltonian
+function MultiplyByHamiltonian(ψ::Vector{Float64}, J1::Float64)
+  @assert abs(norm(ψ) - 1) < 1e-9 "Input state is not normalized" # <1>
+  D = length(ψ) # <1>
+  @assert ispow2(D) "Input state has invalid number of elements" # <1>
+  N = Int(log2(D)) # <1>
+  ψ_out = zeros(D) # <2>
+  for stateInd in range(0, D-1) # <3>
+    state = IndexToState(stateInd, N) # <4>
+    coeff = ψ[stateInd+1] # <4>
+    for (i, si) in enumerate(state) # <5>
+      si = si*2-1 # <6>
+      j = mod(i,N) + 1 # <6>
+      sj = state[j]*2-1 # <6>
+      if si == sj
+        ψ_out[stateInd+1] += J1/4*coeff # <7>
+      else
+        ψ_out[stateInd+1] -= J1/4*coeff # <7>
+        stateIndNew = FlipSpins(stateInd, i, j) # <8>
+        ψ_out[stateIndNew+1] += J1/2*coeff # <8>
+      end
+    end
+  end
+  ψ_out = normalize!(ψ_out) # <9>
+  return ψ_out
+end
+```
+1. Parse Space size and number of spins from wave-function
+2. Define output wave-function
+3. Loop over each state in the space
+4. Define state from state index
+5. Loop over spins in `spins` array
+6. Get the $i$-th and $j$-th spins as +/- form
+7. Calculate effect of $\sigma_i^z \sigma_j^z$ on $\psi$
+8. Calculate effect of $\frac{1}{2}(\sigma^+_i \sigma^-_j + \sigma^-_i \sigma^+_j)$ on $\psi$
+9. RE-normalize state (the Hamiltonian above is not normalized)
+
+Let's check it on a simple case:
+
+```{julia}
+#| label: fig-test-case
+#| fig-cap: "Test case of the Hamiltonian function"
+N = 4
+D = 2^N
+ψ = normalize(rand(rng,D))
+# ψ = normalize(ones(D))
+# ψ = zeros(D); ψ[5] = 1.0;
+plot(ψ, label="Original ψ")
+for ind in range(0, length=2*N)
+  ψ = MultiplyByHamiltonian(ψ, 1.0)
+  if mod(ind+1, round(N/2))==0
+    s = @sprintf("ψ Number #%d", ind+1)
+    plot!(ψ, label=s)
+  end
+end
+title!("Evolution over Hamiltonian Applications")
+xlabel!("State index")
+ylabel!("Coefficient of state")
+```
+
+<!-- To verify that it works, we will find the value of the largest value amplitude (can be seen easily in @fig-test-case):
+
+```{julia}
+#| label: optimal-state
+max_coeff, max_index = findmax(abs.(ψ))
+max_index = IndexToState(max_index, N)
+print(max_index)
+```
+
+This is not exactly what we expected. --> We will calculate the energy of the ground state and of the output state. The function which calculates the energy is the following:
+
+```{julia}
+#| output: false
+#| label: function-energy-of-state
+function E(ψ::Vector{Float64})
+  return ψ'⋅MultiplyByHamiltonian(ψ, 1.0)
+end
+```
+
+We will also need a function which generates the ground state, which is a dimer state. Since this is a product of dimers of the kind $\ket{\uparrow \downarrow}-\ket{\downarrow \uparrow}$ the final state will have all of the possible combinations of pairs: up-down or down-up for each pair. The weight of them will be equal, but the sign will flip with each addition of down-up pair. All of this is summarized in the following function:
+
+```{julia}
+#| output: true
+#| label: generate-dimer-state-function
+function GenerateDimerState(N::Int)
+  @assert N>0 "Number of spins must be positive" # <1>
+  @assert mod(N,2)==0 "Currently only even number of spins is supported" # <1>
+
+  D = 2^N
+  ψ_p = zeros(D)
+  ψ_m = zeros(D)
+  for stateInd in range(0, length=2^Int(N/2)) # <2>
+    pairs = IndexToState(stateInd, Int(N/2)) # <2>
+    # print(stateInd, "->", pairs, "->")
+    index_p = 0
+    index_m = 0
+    sign = 1
+    for (pairInd, pair) in enumerate(pairs)
+      index_p += 2^(2*(pairInd-1)+pair)
+      index_m = bitarr_to_int(circshift(IndexToState(index_p, N), 1))
+      sign *= 2*pair-1
+    end
+    # print(index_p, IndexToState(index_p, N), ", ")
+    # print(index_m, IndexToState(index_m, N), "\n")
+    ψ_p[index_p+1] += sign
+    ψ_m[index_m+1] += sign
+  end
+  return [normalize(ψ_p .+ ψ_m), normalize(ψ_p .- ψ_m)]
+end
+
+(ψ_opt_p, ψ_opt_m) = GenerateDimerState(4)
+print(ψ_opt_p', "\n")
+print(ψ_opt_m', "\n")
+plot(ψ_opt_p, label="ψ+")
+plot!(ψ_opt_m, label="ψ-")
+```
+1. Assert the inputs are correct
+2. Loop over all possible state pairs
+
+Let's use them to verify the state actually gets closer to the ground state:
+
+```{julia}
+#| label: test-energies
+N = 16
+ψ = normalize(rand(rng,2^N))
+(ψ_opt_p, ψ_opt_m) = GenerateDimerState(N)
+# print(2^N, " ", length(ψ), " ", length(ψ_opt), "\n")
+
+iter_num = 30
+E_rng = zeros(iter_num)
+E_opt_p = zeros(iter_num)
+E_opt_m = zeros(iter_num)
+for ind in range(1, length=iter_num)
+  ψ = MultiplyByHamiltonian(ψ, 1.0);
+  E_rng[ind] = E(ψ)
+  E_opt_p[ind] = E(ψ_opt_p)
+  E_opt_m[ind] = E(ψ_opt_m)
+end
+plot(E_rng, label="Repeated Applications")
+plot!(E_opt_p, label="Dimer State +")
+plot!(E_opt_m, label="Dimer State -")
+title!("Energy over repeated applications of H")
+xlabel!("Application Count")
+ylabel!("Energy of State")
+```
+
+# Question #1: 
