@@ -58,17 +58,15 @@ We assume $J_1 >0, J_2 \geq 0$ and denote $g = J_2/J_1$.
 We assume $J_2=0$ as required, thus the Hamiltonian is the Heisenberg one:
 
 $$
-H = J_1 \sum_{i} \vec{S}_{i} \cdot \vec{S}_{i+1} = J_{1} \sum_{\left<i,j\right>} \left[\frac{1}{2}(\sigma^+_i \sigma^-_j + \sigma^-_i \sigma^+_j) +\frac{1}{4} \sigma^z_i \sigma^z_j \right]
+H = J_1 \sum_{i} \vec{S}_{i} \cdot \vec{S}_{i+1} = J_{1} \sum_{\left<i,j\right>} \left[\frac{1}{4}(\sigma^+_i \sigma^-_j + \sigma^-_i \sigma^+_j) +\frac{1}{2} \sigma^z_i \sigma^z_j \right]
 $$
 
 This means the for each pair of adjacent spins $i,j$, the state $\ket{\psi}$ turns into a sum of two elements:
 
-1. A state with switched places for all pairs of opposite spins, with coefficient $\frac{J_1}{2}$.
-2. The same state as $\ket{\psi}$, with a coefficient which is the sum over all pairs of adjacent spins, $+1$ for identical spins and $-1$ for opposite spins. This with coefficient $\frac{J_1}{4}$.
+1. A state with switched places for all pairs of opposite spins, with coefficient $\frac{J_1}{4}$.
+2. The same state as $\ket{\psi}$, with a coefficient $\frac{J_1}{2}$ and also a sum over all pairs of adjacent spins, $+1$ for ++/-- and $-1$ for +-/-+.
 
-Note that this means that the state $\ket{\psi}$ of the system must be represented as an array of real numbers, each on corresponding to the coefficient of a single pure state in the superposition, while each pure state is still a single `UInt`.
-
-In `Julia`, assuming the basis states are integers as shown in the tutorial, but the wavefunction itself is an array of complex amplitudes. We can convert from the index of a state to itself using the following function:
+Note that this means that the state $\ket{\psi}$ of the system must be represented as an array of real numbers, each on corresponding to the coefficient of a single pure state in the superposition, while each pure state is still a single `UInt`. We can convert from the index of a state to itself using the following function:
 
 ```{julia}
 #| output: false
@@ -82,67 +80,152 @@ And now that we have that, we will use it to calculate the effect of the Hamilto
 
 ```{julia}
 #| output: false
-#| label: function-hamiltonian
+#| label: function-heisenberg-hamiltonian
 function MultiplyByHamiltonian(ψ::Vector{Float64}, J1::Float64)
   @assert abs(norm(ψ) - 1) < 1e-9 "Input state is not normalized" # <1>
   D = length(ψ) # <1>
   @assert ispow2(D) "Input state has invalid number of elements" # <1>
   N = Int(log2(D)) # <1>
-  ψ_out = zeros(D) # <2>
-  for stateInd in range(0, D-1) # <3>
-    state = IndexToState(stateInd, N) # <4>
-    coeff = ψ[stateInd+1] # <4>
-    for (i, si) in enumerate(state) # <5>
-      si = si*2-1 # <6>
-      j = mod(i,N) + 1 # <6>
-      sj = state[j]*2-1 # <6>
+  ψ_out = zeros(D)
+  for stateInd in range(0, length=D)
+    state = IndexToState(stateInd, N)
+    coeff = ψ[stateInd+1]
+    for (i, si) in enumerate(state)
+      si = si*2-1 # <2>
+      j = mod(i,N)+1 # <2>
+      sj = state[j]*2-1 # <2>
       if si == sj
-        ψ_out[stateInd+1] += J1/4*coeff # <7>
+        ψ_out[stateInd+1] += J1/4*coeff # <3>
       else
-        ψ_out[stateInd+1] -= J1/4*coeff # <7>
-        stateIndNew = FlipSpins(stateInd, i, j) # <8>
-        ψ_out[stateIndNew+1] += J1/2*coeff # <8>
+        ψ_out[stateInd+1] -= J1/4*coeff # <3>
+        stateIndNew = FlipSpins(stateInd, i, j) # <4>
+        ψ_out[stateIndNew+1] += J1/2*coeff # <4>
       end
     end
   end
-  ψ_out = normalize!(ψ_out) # <9>
+  ψ_out = normalize!(ψ_out) # <5>
   return ψ_out
 end
 ```
 1. Parse Space size and number of spins from wave-function
-2. Define output wave-function
-3. Loop over each state in the space
-4. Define state from state index
-5. Loop over spins in `spins` array
-6. Get the $i$-th and $j$-th spins as +/- form
-7. Calculate effect of $\sigma_i^z \sigma_j^z$ on $\psi$
-8. Calculate effect of $\frac{1}{2}(\sigma^+_i \sigma^-_j + \sigma^-_i \sigma^+_j)$ on $\psi$
-9. RE-normalize state (the Hamiltonian above is not normalized)
+2. Get the $i$-th and $j$-th spins as +1/-1
+3. Calculate effect of $\sigma_i^z \sigma_j^z$ on $\psi$
+4. Calculate effect of $\frac{1}{2}(\sigma^+_i \sigma^-_j + \sigma^-_i \sigma^+_j)$ on $\psi$
+5. Normalize state (the Hamiltonian above is not normalized)
 
 Let's check it on a simple case:
 
 ```{julia}
-#| label: fig-test-case
+#| label: fig-repeated-test
 #| fig-cap: "Test case of the Hamiltonian function"
-N = 4
+N = 6
 D = 2^N
+count = 10000
 ψ = normalize(rand(rng,D))
-# ψ = normalize(ones(D))
-# ψ = zeros(D); ψ[5] = 1.0;
 plot(ψ, label="Original ψ")
-for ind in range(0, length=2*N)
+for ind in range(0, length=count)
   ψ = MultiplyByHamiltonian(ψ, 1.0)
-  if mod(ind+1, round(N/2))==0
-    s = @sprintf("ψ Number #%d", ind+1)
-    plot!(ψ, label=s)
-  end
 end
+plot!(ψ, label=@sprintf("%d Applications of H", count))
 title!("Evolution over Hamiltonian Applications")
-xlabel!("State index")
-ylabel!("Coefficient of state")
 ```
 
-We will calculate the energy of the ground state and of the output state, and see that the output state approaches the ground state. The function which calculates the energy is simple:
+We will calculate the energy of the ground state and of the output state, and see that the output state approaches the ground state.
+
+
+We will also need a function which generates the ground state, which is a dimer state. Since this is a product of dimers of the kind $\ket{\uparrow \downarrow}-\ket{\downarrow \uparrow}$ the final state will have all of the possible combinations of pairs: up-down or down-up for each pair. The weight of them will be equal, but the sign will flip with each addition of down-up pair. All of this is summarized in the following function:
+
+```{julia}
+#| output: false
+#| label: function-dimer-state
+#| fig-cap: "Test case of Dimer States"
+function DimerState(N::Int)
+  @assert N>0 "Number of spins must be positive" # <1>
+  @assert mod(N,2)==0 "Currently only even number of spins is supported" # <1>
+
+  D = 2^N
+  ψ_p = zeros(D)
+  ψ_m = zeros(D)
+  for stateInd in range(0, length=2^Int(N/2)) # <2>
+    pairs = IndexToState(stateInd, Int(N/2))
+    # print(stateInd, "->", pairs, "->")
+    index_p = 0
+    index_m = 0
+    sign = 1
+    for (pairInd, pair) in enumerate(pairs)
+      index_p += 2^(2*(pairInd-1)+pair) # <3>
+      sign *= 2*pair-1 # <4>
+    end
+    # print(index_p, IndexToState(index_p, N), ", ")
+    # print(index_m, IndexToState(index_m, N), "\n")
+    index_m = bitarr_to_int(circshift(IndexToState(index_p, N), 1)) # <5>
+    ψ_p[index_p+1] += sign # <6>
+    ψ_m[index_m+1] += sign # <6>
+  end
+  return [normalize(ψ_p .+ ψ_m), normalize(ψ_p .- ψ_m)] # <7>
+end
+```
+1. Assert the inputs are correct
+2. Loop over all possible states for each pair of spins (up-down or down-up)
+3. Insert the pair state into the final state by increasing the index either by up-down pair or by down-up pair, according to the pair state
+4. Multiply sign by a minus for every up-down pair
+5. Take the final state and shift by one, this is the other ground dimer state.
+6. Add this spin-state into the total wave-function
+7. The final states are the symmetrical and anti-symmetrical sums of the dimers.
+
+We can create a test case:
+
+```{julia}
+#| label: fig-dimer-test
+(ψ_Dimer_p, ψ_Dimer_m) = DimerState(N)
+plot(ψ_Dimer_p, label="Dimer Dimer +")
+plot!(ψ_Dimer_m, label="Dimer State -")
+```
+
+Which is remarkably similar to the results of the [repeated application](#fig-repeated-test) of the Hamiltonian. Let's plot the difference between them:
+
+```{julia}
+#| label: fig-dimer-repeated-difference
+plot(ψ .- ψ_Dimer_p, label="Difference from Dimer +")
+plot!(ψ .- ψ_Dimer_m, label="Difference from Dimer -")
+```
+
+On the other hand the **classical** ground state for $N$ spins in chain is Ferromagnetic for $J<0$ and Antiferromagnetic for $J>0$, i.e. the Néel State. So the function which generates the ground state is the following:
+
+```{julia}
+#| output: false
+#| label: function-neel-state
+#| fig-cap: "Test case of Néel State"
+function NeelState(N::Int, J::Float64)
+  @assert N>0 "Spin count must be positive"
+  @assert J != 0 "Coupling constant cannot be zero"
+  D = 2^N
+
+  ψ = zeros(D)
+  stateInd = 0
+  for spinInd in range(0, length=N)
+    if J > 0 && mod(spinInd, 2) == 0
+      continue
+    end
+    stateInd += 2^spinInd
+  end
+  ψ[stateInd] = 1
+  return ψ
+end
+```
+
+I promise this is the last test case for now:
+```{julia}
+#| label: fig-neel-test
+J = 1.0
+N = 4
+ψ = NeelState(N, J)
+maxVal, maxInd = findmax(ψ)
+state = IndexToState(maxInd, N)
+plot(ψ, label="Heisenberg State")
+```
+
+Let's use all of those together to verify the repeatedly-applied-upon state actually gets closer to the ground state. First we need a function to calculate the energy of a state:
 
 ```{julia}
 #| output: false
@@ -152,96 +235,38 @@ function E(ψ::Vector{Float64})
 end
 ```
 
-The ground state for $N$ spins in chain is Ferromagnetic for $J>0$ and Antiferromagnetic for $J<0$. So the function which generates the ground state is the following:
-
-```{julia}
-function HeisenbergGroundState(N::Int, J::Float64)
-  @assert N>0 "Spin count must be positive"
-  @assert J != 0 "Coupling constant cannot be zero"
-  D = 2^N
-
-  ψ = zeros(D)
-  stateInd = 0
-  for spinInd in range(0, length=N)
-    if J < 0 && mod(spinInd, 2) == 0
-      continue
-    end
-    stateInd += 2^spinInd
-  end
-  print(IndexToState(stateInd, N))
-  ψ[stateInd] = 1
-  return ψ
-end
-
-HeisenbergGroundState(N, J)
-```
-
-Let's use them to verify the state actually gets closer to the ground state:
+And now we can use it to compare the states:
 
 ```{julia}
 #| label: test-energies
-J = -1.0
-N = 4
+J = 1.0
+N = 8
 ψ = normalize(rand(rng,2^N))
-ψ_opt = HeisenbergGroundState(N, J)
-# print(2^N, " ", length(ψ), " ", length(ψ_opt), "\n")
+(ψ_Dimer_p, ψ_Dimer_m) = DimerState(N)
+ψ_Neel = NeelState(N, J)
+# print(2^N, " ", length(ψ), " ", length(ψ_dim), "\n")
 
-iter_num = 30
+iter_num = 100
 E_rng = zeros(iter_num)
-E_opt = zeros(iter_num)
+E_Dimer_p = zeros(iter_num)
+E_Dimer_m = zeros(iter_num)
+E_Neel = zeros(iter_num)
 for ind in range(1, length=iter_num)
   ψ = MultiplyByHamiltonian(ψ, 1.0);
   E_rng[ind] = E(ψ)
-  E_opt[ind] = E(ψ_opt)
+  E_Dimer_p[ind] = E(ψ_Dimer_p)
+  E_Dimer_m[ind] = E(ψ_Dimer_m)
+  E_Neel[ind] = E(ψ_Neel)
 end
 plot(E_rng, label="Repeated Applications")
-plot!(E_opt, label="Ground State")
+plot!(E_Dimer_p, label="Dimer State +")
+plot!(E_Dimer_m, label="Dimer State -")
+plot!(E_Neel, label="Neel State")
 title!("Energy over repeated applications of H")
 xlabel!("Application Count")
 ylabel!("Energy of State")
 ```
 
+But why is this below the Dimer states? AAAAA
+
 # Question #1: 
-
-
-## Appendix #1: Dimer State
-
-We will also need a function which generates the ground state, which is a dimer state. Since this is a product of dimers of the kind $\ket{\uparrow \downarrow}-\ket{\downarrow \uparrow}$ the final state will have all of the possible combinations of pairs: up-down or down-up for each pair. The weight of them will be equal, but the sign will flip with each addition of down-up pair. All of this is summarized in the following function:
-
-```{julia}
-#| output: true
-#| label: generate-dimer-state-function
-function GenerateDimerState(N::Int)
-  @assert N>0 "Number of spins must be positive" # <1>
-  @assert mod(N,2)==0 "Currently only even number of spins is supported" # <1>
-
-  D = 2^N
-  ψ_p = zeros(D)
-  ψ_m = zeros(D)
-  for stateInd in range(0, length=2^Int(N/2)) # <2>
-    pairs = IndexToState(stateInd, Int(N/2)) # <2>
-    # print(stateInd, "->", pairs, "->")
-    index_p = 0
-    index_m = 0
-    sign = 1
-    for (pairInd, pair) in enumerate(pairs)
-      index_p += 2^(2*(pairInd-1)+pair)
-      index_m = bitarr_to_int(circshift(IndexToState(index_p, N), 1))
-      sign *= 2*pair-1
-    end
-    # print(index_p, IndexToState(index_p, N), ", ")
-    # print(index_m, IndexToState(index_m, N), "\n")
-    ψ_p[index_p+1] += sign
-    ψ_m[index_m+1] += sign
-  end
-  return [normalize(ψ_p .+ ψ_m), normalize(ψ_p .- ψ_m)]
-end
-
-(ψ_opt_p, ψ_opt_m) = GenerateDimerState(4)
-print(ψ_opt_p', "\n")
-print(ψ_opt_m', "\n")
-plot(ψ_opt_p, label="ψ+")
-plot!(ψ_opt_m, label="ψ-")
-```
-1. Assert the inputs are correct
-2. Loop over all possible state pairs
