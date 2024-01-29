@@ -1,0 +1,4 @@
+# Specify filepatterns you want git to ignore.
+.jupyter_cache
+*_files*
+*.ipynb
