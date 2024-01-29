@@ -10,6 +10,7 @@ format:
     code-annotations: hover
     mainfont: "Alef"
     monofont: "JetBrains Mono"
+    code-fold: true
 ---
 
 ```{julia}
