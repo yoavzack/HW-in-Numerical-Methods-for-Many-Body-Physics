@@ -29,22 +29,6 @@ default(background_color=:transparent, dpi=300)
 rng = MersenneTwister(42);
 ```
 
-```{julia}
-#| echo: false
-#| output: false
-#| label: function-flip-spins
-function FlipSpins(x::Integer, i::Integer, j::Integer)
-  f = typeof(x)(1) << (i-1) | typeof(x)(1) << (j-1) # <1>
-  return x ⊻ f
-end
-
-function bitarr2int(arr::Vector{<:Integer})
-  return sum(arr .* (2 .^ collect(0:length(arr)-1))) # <2>
-end
-```
-1. Given in the tutorial
-2. Copied from [here](https://discourse.julialang.org/t/parse-an-array-of-bits-bitarray-to-an-integer/42361/2)
-
 In this assignment we will work on the $(J_1,J_2)$ spin-$\frac{1}{2}$ extension to the [Heisenberg model](https://en.wikipedia.org/wiki/Quantum_Heisenberg_model), which is sometimes called the [J1-J2 Model](https://en.wikipedia.org/wiki/J1_J2_model):
 
 $$
@@ -99,7 +83,6 @@ function multiply_heisenberg(ψ::Vector{<:Number}, J1::Real)
         ψ_out[stateInd+1] += J1/4 # <3>
       else
         ψ_out[stateInd+1] -= J1/4 # <3>
-        # stateIndNew = FlipSpins(stateInd, i, j) # <4>
         ψ_out[stateInd+1] -= J1/2 # <4>
       end
     end
@@ -133,57 +116,7 @@ title!("Evolution over Hamiltonian Applications")
 
 We will calculate the energy of the ground state and of the output state, and see that the output state approaches the ground state.
 
-
-We will also need a function which generates the ground state, which is a dimer state. Since this is a product of dimers of the kind $\ket{\uparrow \downarrow}-\ket{\downarrow \uparrow}$ the final state will have all of the possible combinations of pairs: up-down or down-up for each pair. The weight of them will be equal, but the sign will flip with each addition of down-up pair. All of this is summarized in the following function:
-
-```{julia}
-#| output: false
-#| label: function-dimer-state
-#| fig-cap: "Test case of Dimer States"
-function dimer_state(N::Integer)
-  @assert N>0 "Number of spins must be positive" # <1>
-  @assert mod(N,2)==0 "Currently only even number of spins is supported" # <1>
-
-  D = 2^N
-  ψ_p = zeros(D)
-  ψ_m = zeros(D)
-  for stateInd in range(0, length=2^Int(N/2)) # <2>
-    pairs = index2state(stateInd, Int(N/2))
-    # print(stateInd, "->", pairs, "->")
-    index_p = 0
-    index_m = 0
-    sign = 1
-    for (pairInd, pair) in enumerate(pairs)
-      index_p += 2^(2*(pairInd-1)+pair) # <3>
-      sign *= 2*pair-1 # <4>
-    end
-    # print(index_p, index2state(index_p, N), ", ")
-    # print(index_m, index2state(index_m, N), "\n")
-    index_m = bitarr2int(circshift(index2state(index_p, N), 1)) # <5>
-    ψ_p[index_p+1] += sign # <6>
-    ψ_m[index_m+1] += sign # <6>
-  end
-  return [normalize(ψ_p .+ ψ_m), normalize(ψ_p .- ψ_m)] # <7>
-end
-```
-1. Assert the inputs are correct
-2. Loop over all possible states for each pair of spins (up-down or down-up)
-3. Insert the pair state into the final state by increasing the index either by up-down pair or by down-up pair, according to the pair state
-4. Multiply sign by a minus for every up-down pair
-5. Take the final state and shift by one, this is the other ground dimer state.
-6. Add this spin-state into the total wave-function
-7. The final states are the symmetrical and anti-symmetrical sums of the dimers.
-
-We can create a test case:
-
-```{julia}
-#| label: fig-dimer-test
-(ψ_Dimer_p, ψ_Dimer_m) = dimer_state(N)
-plot(ψ_Dimer_p, label="Dimer Dimer +")
-plot!(ψ_Dimer_m, label="Dimer State -")
-```
-
-On the other hand the **classical** ground state for $N$ spins in chain is Ferromagnetic for $J<0$ and Antiferromagnetic for $J>0$, i.e. the Néel State. So the function which generates the ground state is the following:
+The ground state for $N$ spins in a Heisenberg chain is Ferromagnetic for $J<0$ and Antiferromagnetic for $J>0$, i.e. the Néel State. So the function which generates the ground state is the following:
 
 ```{julia}
 #| output: false
@@ -207,7 +140,8 @@ function neel_state(N::Integer, J::Real)
 end
 ```
 
-I promise this is the last test case for now:
+We can test it using a simple test case:
+
 ```{julia}
 #| label: fig-neel-test
 J = 1.0
@@ -218,7 +152,7 @@ state = index2state(maxInd, N)
 plot(ψ, label="Heisenberg State")
 ```
 
-Let's use all of those together to verify the repeatedly-applied-upon state actually gets closer to the ground state. First we need a function to calculate the energy of a state:
+To compare the energy of this state to the one we got by repeatedly applying the Hamiltonian we need a function to calculate the energy of a state:
 
 ```{julia}
 #| output: false
@@ -228,39 +162,29 @@ function state_energy(ψ::Vector{<:Number})
 end
 ```
 
-And now we can use it to compare the states:
+Using it we can calculate the energy after repeatedly applying the Hamiltonian and see that it converges to the ground state energy:
 
 ```{julia}
 #| label: test-energies
 J = 1.0
 N = 12
 ψ = normalize(rand(rng,2^N))
-(ψ_Dimer_p, ψ_Dimer_m) = dimer_state(N)
 ψ_Neel = neel_state(N, J)
-# print(2^N, " ", length(ψ), " ", length(ψ_dim), "\n")
 
 iter_num = 50
 E_rng = zeros(iter_num)
-E_Dimer_p = zeros(iter_num)
-E_Dimer_m = zeros(iter_num)
 E_Neel = zeros(iter_num)
 for ind in range(1, length=iter_num)
   ψ = multiply_heisenberg(ψ, 1.0);
   E_rng[ind] = state_energy(ψ)
-  E_Dimer_p[ind] = state_energy(ψ_Dimer_p)
-  E_Dimer_m[ind] = state_energy(ψ_Dimer_m)
   E_Neel[ind] = state_energy(ψ_Neel)
 end
-print(E_rng[iter_num], " ", E_Dimer_p[iter_num], " ", E_Dimer_m[iter_num], " ", E_Neel[iter_num], "\n")
-plot(E_rng, label="Repeated Applications")
-plot!(E_Dimer_p, label="Dimer State +")
-plot!(E_Dimer_m, label="Dimer State -")
-plot!(E_Neel, label="Neel State")
-title!("Energy over repeated applications of H")
+plot(E_rng .- E_Neel , label="", yaxis=:log)
+title!("Energy Difference over repeated applications of H")
 xlabel!("Application Count")
-ylabel!("Energy of State")
+ylabel!("Energy Difference")
 ```
 
-And we can see that the energy of the state goes towards the energy of the Néel State, which is the ground state of the system.
+And we can see that the energy of the state goes towards the energy of the Néel State, as expected.
 
-# Question #1: 
+# Question #1: Hamiltonian for $g\neq0$
