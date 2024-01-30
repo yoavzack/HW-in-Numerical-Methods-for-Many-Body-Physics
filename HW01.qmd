@@ -8,7 +8,7 @@ format:
       light: united
       dark: darkly
     code-annotations: hover
-    mainfont: "Alef"
+    mainfont: "Latin Modern Roman Bold"
     monofont: "JetBrains Mono"
     code-fold: false
 ---
