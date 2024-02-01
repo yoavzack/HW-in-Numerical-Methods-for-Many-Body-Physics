@@ -168,7 +168,7 @@ end
 Using it we can calculate the energy after repeatedly applying the Hamiltonian and see that it converges to the ground state energy:
 
 ```{julia}
-#| label: test-energies
+#| label: test-repeated-energy
 J = 1.0
 N = 12
 ψ = normalize(rand(rng,2^N))
@@ -296,7 +296,6 @@ Let's test it on a few simple cases spins with given $N, N_{\uparrow}$:
 
 ```{julia}
 #| layout-ncol: 4
-#| code-fold: false
 #| label: fig-test-g-hamiltonian
 #| fig-cap: "Heatmap plot of $H$ for three different cases"
 #| fig-subcap:
@@ -326,14 +325,15 @@ In the following questions we will work on the following cases:
 #| label: def-g-array
 #| output: false
 gc = 0.241
-garr = [0, gc, 0.42, 0.5]
+garr = [0, gc, 0.45, 0.5]
 ```
 
 To perform the triplet gap test we will calculate the energy of the ground state for $S^z=0$ and the lowest energy for $S^z=1$:
 
 ```{julia}
 #| label: calc-triplet-gap
-Narr = 8:2:16
+#| output: false
+Narr = 6:2:12
 J1 = 1.0
 
 E0 = zeros(length(Narr), length(garr))
@@ -360,18 +360,18 @@ To verify that the gap is correct, we will plot it as a function of $\frac{1}{N}
 1. Goes to zero for $g\leq g_c$
 2. Does not go to zero for $g > g_c$
 
-Let's plot:
+We also perform a linear fit to each case to verify that it actually goes to zero at $N\to \infty$:
 
 ```{julia}
-#| label: fig-fit-gap
-@. model(x, a) = a[1] + a[2]*x
+#| label: fig-triplet-gap
+@. model(x, a) = a[1] + a[2]*x + a[3]*x^2
+x = 1 ./ Narr
+xh = LinRange(0, 1.1/minimum(Narr), 1000)
 
 plt = plot()
 for (gind, g) in enumerate(garr)
-  x = 1 ./ Narr
-  xh = [1.1 ./ minimum(Narr), 0.0]
   y = ΔE[:, gind]
-  fitobj = curve_fit(model, x, y, [0.0,0.0])
+  fitobj = curve_fit(model, x, y, [0.0,0.0,0.0])
   scatter!(x, y, label=@sprintf("g = %1.3f", g), color=palette(:default)[gind])
   plot!(xh, model(xh, coef(fitobj)), label=nothing, color=palette(:default)[gind])
   @printf("For g=%.3f the intercept is %.3f\n", g, coef(fitobj)[1])
