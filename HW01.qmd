@@ -382,3 +382,132 @@ xlabel!("1/N")
 ylabel!("ΔE")
 display(plt)
 ```
+
+# Question 3: Singlet Gap 
+
+Now we want to perform a similar experiment, but for the gap in the singlet state. we use almost the same formalism:
+
+```{julia}
+#| label: calc-singlet-gap
+#| output: false
+Narr = 4:2:12
+J1 = 1.0
+
+E0 = zeros(length(Narr), length(garr))
+E1 = zeros(length(Narr), length(garr))
+for (Nind, N) in enumerate(Narr)
+  b = fixed_sz_basis(N, Int(N/2))
+  for (gind, g) in enumerate(garr)
+    J2 = g*J1
+    H = construct_g_hamiltonian(b, J1, J2)
+
+    res = eigs(H; nev=2, which=:SR, ritzvec=false)[1]
+    E0[Nind, gind] = res[1]
+    E1[Nind, gind] = res[2]
+  end
+end
+ΔE = E1 .- E0
+```
+
+And plot it, but now with a separate plot for each values of $g$:
+
+```{julia}
+#| label: fig-singlet-gap
+#| fig-cap: "Energy gap for the singlet state for several $g$ values"
+plt = plot()
+for (gind, g) in enumerate(garr)
+  plot!(1 ./ Narr, ΔE[:, gind], marker=:circle, label=@sprintf("g = %.3f", g) )
+end
+xlabel!("1/N")
+ylabel!("ΔE")
+display(plt)
+```
+
+# Question 4: Spin-Spin Correlations
+
+To calculate the spin-spin correlation of a the ground state, we first need the ground state. We already have the Néel State which is the ground state for $g < g_c$, but for $g>g_c$ we need to generate Dimer States, using the following function:
+
+```{julia}
+#| label: function-dimer-state
+#| output: false
+function bitarr2int(arr::Vector{<:Integer})
+  return sum(arr .* (2 .^ collect(0:length(arr)-1))) # <2>
+end
+
+function dimer_state(N::Integer)
+  @assert N>0 "Number of spins must be positive"
+  @assert mod(N,2)==0 "Only even number of spins are supported"
+
+  D = 2^N
+  ψ_p = zeros(D)
+  ψ_m = zeros(D)
+  for stateInd in range(0, length=2^Int(N/2))
+    pairs = index2state(stateInd, Int(N/2))
+    index_p = 0
+    index_m = 0
+    sign = 1
+    for (pairInd, pair) in enumerate(pairs)
+      index_p += 2^(2*(pairInd-1)+pair)
+      sign *= 2*pair-1
+    end
+    index_m = bitarr2int(circshift(index2state(index_p, N), 1))
+    ψ_p[index_p+1] += sign
+    ψ_m[index_m+1] += sign
+  end
+  return [normalize(ψ_p .+ ψ_m), normalize(ψ_p .- ψ_m)]
+end
+```
+
+Let's test it:
+
+```{julia}
+N = 6
+ψDimer = dimer_state(N)
+for ψ in ψDimer
+  for (stateind, coeff) in enumerate(ψ)
+    if abs(coeff) < 1e-9
+      continue
+    end
+    print(coeff, " ", index2state(stateind-1, N), "\n")
+  end
+  print("\n")
+end
+```
+
+Now that we have the states, we can calculate the spin-spin correlation:
+
+```{julia}
+#| label: function-spinspin-correlations
+#| output: false
+function spinspin_correlation(ψ::Vector{<:Number}, x::Integer)
+  D = length(ψ)
+  @assert ispow2(D) "Length of wave-function must be a power of two"
+  N = Int(log2(D))
+
+  corr = 0
+  for (stateind, coeff) in enumerate(ψ)
+    state = index2state(stateind-1, N)
+    state_shifted = circshift(state, x)
+    corr += abs(coeff)^2 * (state' ⋅ state_shifted) / D
+  end
+  return corr
+end
+```
+
+Let's test it:
+
+```{julia}
+N = 10
+D = 2^N
+ψDimer = dimer_state(N)
+
+plt = plot()
+for ψ in ψDimer
+  corr = zeros(D)
+  for x in range(0, length=N)
+    corr[x+1] = spinspin_correlation(ψ, x)
+  end
+  plot!(corr)
+end
+display(plt)
+```
