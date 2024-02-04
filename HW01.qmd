@@ -491,14 +491,14 @@ Now that we have the states, we can calculate the spin-spin correlation:
 ```{julia}
 #| label: function-spinspin-correlations
 #| output: false
-function spinspin_correlation(ψ::Vector{<:Number}, x::Integer)
+function spinspin_correlation(ψ::Vector{<:Number}, b::fixed_sz_basis, N::Integer, x::Integer)
   @assert abs(norm(ψ) - 1) < 1e-9 "Input state is not normalized"
-  D = length(ψ)
-  @assert ispow2(D) "Length of wave-function must be a power of two"
-  N = Int(log2(D))
+  @assert mod(N,2) == 0 && N > 0 "Number of spins must be positive and even"
 
   corr = 0
-  for (stateind, coeff) in enumerate(ψ)
+  for (substateind, coeff) in enumerate(ψ)
+    stateind = b.states[substateind]
+    # print(index2state(stateind, N), '\n')
     state = 2 .* index2state(stateind, N) .- 1
     state_shifted = circshift(state, x)
     # print(coeff, "*", state, "⋅", state_shifted, "\n")
@@ -508,39 +508,37 @@ function spinspin_correlation(ψ::Vector{<:Number}, x::Integer)
 end
 ```
 
-Let's test it:
+We will test the Spin-Spin correlation on the ground state of several Hamiltonians, each for a different value of $g$. To get the ground state, we will apply the Hamiltonian to a random state repeatedly until the state no longer changes:
 
 ```{julia}
-N = 14
+N = 16
 D = 2^N
-J = 1.0
+J1 = 1.0
 
-# Dimer State
-# ψDimer = dimer_state(N)
+corr = zeros(length(garr), N)
 
-# 101010101... state
-ψ = zeros(D)
-flipstate = sum([2^(2*i) for i in range(0,length=Int(N/2))])
-ψ[flipstate] = 1.0
+plt1 = plot()
+plt2 = plot()
+for (gind, g) in enumerate(garr)
+  J2 = g*J1
+  b = fixed_sz_basis(N, Int(N/2))
+  H = construct_g_hamiltonian(b, J1, J2)
 
-# random state
-# ψ = normalize(2 .* rand(rng, D) .- 1)
-
-# random eigenstate
-# ψ = zeros(D)
-# ψ[rand(rng, 1:length(ψ))] = 1.0
-
-# neel state
-# ψ = neel_state(N, J)
-
-plt = plot()
-# for ψ in ψDimer
-  corr = zeros(N)
-  for x in range(0, length=N)
-    # print(x, ":\n")
-    corr[x+1] = spinspin_correlation(ψ, x)
+  ψ = normalize(rand(rng, length(b)))
+  ψ_old = normalize(rand(rng, length(b)))
+  iter = 0
+  while abs(abs(ψ_old' ⋅ ψ) - 1.0) > 1e-9 && iter < 1000
+    ψ_old = ψ
+    ψ = normalize(H*ψ)
+    iter += 1
   end
-  plot!(corr)
-# end
-display(plt)
+  plot!(plt1, ψ)
+
+  for x in range(0, length=1)
+    corr[gind, x+1] = spinspin_correlation(ψ, b, N, x)
+  end
+  plot!(plt2, corr[gind, :], label=@sprintf("g = %1.3f", g), marker=:circle)
+end
+display(plt1)
+display(plt2)
 ```
