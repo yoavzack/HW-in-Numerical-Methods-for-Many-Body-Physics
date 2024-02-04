@@ -389,7 +389,7 @@ Now we want to perform a similar experiment, but for the gap in the singlet stat
 
 ```{julia}
 #| label: calc-singlet-gap
-#| output: false
+#| output: true
 Narr = 4:2:12
 J1 = 1.0
 
@@ -422,6 +422,18 @@ xlabel!("1/N")
 ylabel!("ΔE")
 display(plt)
 ```
+
+To verify that in the case $g > g_c$ the relation is exponential we will plot it specifically in a semilog-y plot:
+
+```{julia}
+#| label: fig-semilogy-g
+#| fig-cap: "Plot of the 3rd case ($g > g_c$) in a semilog-y plot."
+plot(Narr, ΔE[:,3], marker=:circle, yaxis=:log, label=nothing)
+xlabel!("N")
+ylabel!("ΔE")
+```
+
+This is not exactly a linear relation, but it is about linear. I guess this is the best we can hope for in small system sizes.
 
 # Question 4: Spin-Spin Correlations
 
@@ -468,9 +480,9 @@ for ψ in ψDimer
     if abs(coeff) < 1e-9
       continue
     end
-    print(coeff, " ", index2state(stateind-1, N), "\n")
+    # print(coeff, " ", index2state(stateind-1, N), "\n")
   end
-  print("\n")
+  # print("\n")
 end
 ```
 
@@ -480,15 +492,17 @@ Now that we have the states, we can calculate the spin-spin correlation:
 #| label: function-spinspin-correlations
 #| output: false
 function spinspin_correlation(ψ::Vector{<:Number}, x::Integer)
+  @assert abs(norm(ψ) - 1) < 1e-9 "Input state is not normalized"
   D = length(ψ)
   @assert ispow2(D) "Length of wave-function must be a power of two"
   N = Int(log2(D))
 
   corr = 0
   for (stateind, coeff) in enumerate(ψ)
-    state = index2state(stateind-1, N)
+    state = 2 .* index2state(stateind, N) .- 1
     state_shifted = circshift(state, x)
-    corr += abs(coeff)^2 * (state' ⋅ state_shifted) / D
+    # print(coeff, "*", state, "⋅", state_shifted, "\n")
+    corr += abs(coeff)^2 * (state' ⋅ state_shifted) / N
   end
   return corr
 end
@@ -497,17 +511,36 @@ end
 Let's test it:
 
 ```{julia}
-N = 10
+N = 14
 D = 2^N
-ψDimer = dimer_state(N)
+J = 1.0
+
+# Dimer State
+# ψDimer = dimer_state(N)
+
+# 101010101... state
+ψ = zeros(D)
+flipstate = sum([2^(2*i) for i in range(0,length=Int(N/2))])
+ψ[flipstate] = 1.0
+
+# random state
+# ψ = normalize(2 .* rand(rng, D) .- 1)
+
+# random eigenstate
+# ψ = zeros(D)
+# ψ[rand(rng, 1:length(ψ))] = 1.0
+
+# neel state
+# ψ = neel_state(N, J)
 
 plt = plot()
-for ψ in ψDimer
-  corr = zeros(D)
+# for ψ in ψDimer
+  corr = zeros(N)
   for x in range(0, length=N)
+    # print(x, ":\n")
     corr[x+1] = spinspin_correlation(ψ, x)
   end
   plot!(corr)
-end
+# end
 display(plt)
 ```
