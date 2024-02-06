@@ -536,4 +536,67 @@ end
 ```
 
 We can see that indeed the correlation decays as a power law for $g \leq g_c$ and exponentially for $g > g_c$. for $g = 1/2$ we get a constant almost-zero correlation which I don't understand yet.
+
+# Question 5
+
+Next we want to calculate the bond-bind correlation on the ground state in each case. First, we write a function which calculates the correlation, similar to the one from Question 4:
+
+```{julia}
+#| label: function-bondbond-correlation
+#| output: false
+function bondbond_correlation(ψ::Vector{<:Number}, b::fixed_sz_basis, N::Integer, x::Integer)
+  @assert abs(norm(ψ) - 1) < 1e-9 "Input state is not normalized"
+  @assert mod(N,2) == 0 && N > 0 "Number of spins must be positive and even"
+
+  corr = 0
+  mean1 = 0
+  mean2 = 0
+  for (substateind, coeff) in enumerate(ψ)
+    if mod(substateind, 2) == 0 # <1>
+      continue # <1>
+    end # <1>
+
+    stateind1 = b.states[substateind]
+    state = 2 .* index2state(stateind1, N) .- 1
+    bond1 = abs(coeff)^2 * state[1] * state[2]
+    bond2 = abs(coeff)^2 * state[mod(x,N)+1] * state[mod(x+1,N)+1]
+    corr += abs(coeff)^2 * bond1 * bond2
+    mean1 += abs(coeff)^2 * bond1
+    mean2 += abs(coeff)^2 * bond2
+  end
+  var = corr - mean1 * mean2
+  return var
+end
+```
+1. Loop over pairs
+
+We test this function in the same manner we did in Question 4:
+
+```{julia}
+#| label: fig-ground-state-bondbond-correlation
+N = 16
+D = 2^N
+J1 = 1.0
+
+corr = zeros(length(garr), Int(N/2))
+
+plt = plot()
+for (gind, g) in enumerate(garr)
+  J2 = g*J1
+  b = fixed_sz_basis(N, Int(N/2))
+  H = construct_g_hamiltonian(b, J1, J2)
+
+  ψ = normalize(rand(rng, length(b)))
+  ψ_old = normalize(rand(rng, length(b)))
+  while abs(abs(ψ_old' ⋅ ψ) - 1.0) > sqrt((1e-6)^2*length(ψ))
+    ψ_old = ψ
+    ψ = normalize(H*ψ)
+  end
+
+  for x in range(0, length=Int(N/2))
+    corr[gind, x+1] = bondbond_correlation(ψ, b, N, x)
+  end
+  plot!(corr[gind, :].^2, label=@sprintf("g = %1.3f", g), marker=:circle)
+end
+display(plt)
 ```
