@@ -170,7 +170,7 @@ Using it we can calculate the energy after repeatedly applying the Hamiltonian a
 ```{julia}
 #| label: test-repeated-energy
 J = 1.0
-N = 12
+N = 16
 ψ = normalize(rand(rng,2^N))
 ψNeel = neel_state(N, J)
 
@@ -295,9 +295,9 @@ We can name a few interesting cases in which the ground state is easy:
 Let's test it on a few simple cases spins with given $N, N_{\uparrow}$:
 
 ```{julia}
-#| layout-ncol: 4
 #| label: fig-test-g-hamiltonian
 #| fig-cap: "Heatmap plot of $H$ for three different cases"
+#| layout-ncol: 4
 #| fig-subcap:
 #|   - "$J_1 = 0, J_2 = 1$"
 #|   - "$J_1 = 1, J_2 = 0$"
@@ -333,7 +333,7 @@ To perform the triplet gap test we will calculate the energy of the ground state
 ```{julia}
 #| label: calc-triplet-gap
 #| output: false
-Narr = 6:2:12
+Narr = 6:2:16
 J1 = 1.0
 
 E0 = zeros(length(Narr), length(garr))
@@ -364,9 +364,12 @@ We also perform a linear fit to each case to verify that it actually goes to zer
 
 ```{julia}
 #| label: fig-triplet-gap
+#| fig-cap: "The triplet gap, i.e. the energy Gap between the ground state of the $S_{z}=0$ subspace and the ground state of the $S_{z}=1$ subspace, for different values of $g$."
 @. model(x, a) = a[1] + a[2]*x + a[3]*x^2
 x = 1 ./ Narr
 xh = LinRange(0, 1.1/minimum(Narr), 1000)
+
+intercept = []
 
 plt = plot()
 for (gind, g) in enumerate(garr)
@@ -374,22 +377,23 @@ for (gind, g) in enumerate(garr)
   fitobj = curve_fit(model, x, y, [0.0,0.0,0.0])
   scatter!(x, y, label=@sprintf("g = %1.3f", g), color=palette(:default)[gind])
   plot!(xh, model(xh, coef(fitobj)), label=nothing, color=palette(:default)[gind])
-  @printf("For g=%.3f the intercept is %.3f\n", g, coef(fitobj)[1])
+  push!(intercept, coef(fitobj)[1])
 end
 plot!(xlims=(0, Inf), ylims=(0, Inf))
-title!("Fit for ΔE at Thermodynamic Limit")
 xlabel!("1/N")
 ylabel!("ΔE")
 display(plt)
 ```
 
+As can be seen, for $g<g_c$ the intercept is basically $0$ (we get `{julia} @sprintf("%.3f", intercept[1])` and `{julia} @sprintf("%.3f", intercept[2])`), while for $g>g_c$ the intercept is finite and non-zero (`{julia} @sprintf("%.3f", intercept[3])` and `{julia} @sprintf("%.3f", intercept[4])`)
+
 # Question 3: Singlet Gap 
 
-Now we want to perform a similar experiment, but for the gap in the singlet state. we use almost the same formalism:
+Now we want to perform a similar experiment, but for the gap in the singlet state. We use almost the same formalism:
 
 ```{julia}
 #| label: calc-singlet-gap
-#| output: true
+#| output: false
 Narr = 4:2:12
 J1 = 1.0
 
@@ -428,8 +432,8 @@ To verify that in the case $g > g_c$ the relation is exponential we will plot it
 ```{julia}
 #| label: fig-semilogy-g
 #| fig-cap: "Plot of the 3rd case ($g > g_c$) in a semilog-y plot."
-plot(Narr, ΔE[:,3], marker=:circle, yaxis=:log, label=nothing)
-xlabel!("N")
+plot(1 ./ Narr, ΔE[:,3], marker=:circle, yaxis=:log, label=nothing)
+xlabel!("1/N")
 ylabel!("ΔE")
 ```
 
@@ -470,22 +474,6 @@ function dimer_state(N::Integer)
 end
 ```
 
-Let's test it:
-
-```{julia}
-N = 6
-ψDimer = dimer_state(N)
-for ψ in ψDimer
-  for (stateind, coeff) in enumerate(ψ)
-    if abs(coeff) < 1e-9
-      continue
-    end
-    # print(coeff, " ", index2state(stateind-1, N), "\n")
-  end
-  # print("\n")
-end
-```
-
 Now that we have the states, we can calculate the spin-spin correlation:
 
 ```{julia}
@@ -498,11 +486,8 @@ function spinspin_correlation(ψ::Vector{<:Number}, b::fixed_sz_basis, N::Intege
   corr = 0
   for (substateind, coeff) in enumerate(ψ)
     stateind = b.states[substateind]
-    # print(index2state(stateind, N), '\n')
     state = 2 .* index2state(stateind, N) .- 1
-    state_shifted = circshift(state, x)
-    # print(coeff, "*", state, "⋅", state_shifted, "\n")
-    corr += abs(coeff)^2 * (state' ⋅ state_shifted) / N
+    corr += abs(coeff)^2 * state[1] * state[mod(x,N)+1]
   end
   return corr
 end
@@ -511,14 +496,21 @@ end
 We will test the Spin-Spin correlation on the ground state of several Hamiltonians, each for a different value of $g$. To get the ground state, we will apply the Hamiltonian to a random state repeatedly until the state no longer changes:
 
 ```{julia}
+#| label: fig-ground-state-spinspin-correlation
+#| fig-cap: "The spin-spin correlation $\braket{S_{i} | S_{i+x}}$ for different $x$ values, in a log-log plot."
+#| layout-ncol: 2
+#| layout-nrow: 2
+#| fig-subcap:
+#|   - "loglog plot for $g=0$"
+#|   - "loglog plot for $g=g_c$"
+#|   - "semilogy plot for $g=0.45$"
+#|   - "semilogy plot for $g=0.5$"
 N = 16
 D = 2^N
 J1 = 1.0
 
-corr = zeros(length(garr), N)
+corr = zeros(length(garr), Int(N/2))
 
-plt1 = plot()
-plt2 = plot()
 for (gind, g) in enumerate(garr)
   J2 = g*J1
   b = fixed_sz_basis(N, Int(N/2))
@@ -526,19 +518,22 @@ for (gind, g) in enumerate(garr)
 
   ψ = normalize(rand(rng, length(b)))
   ψ_old = normalize(rand(rng, length(b)))
-  iter = 0
-  while abs(abs(ψ_old' ⋅ ψ) - 1.0) > 1e-9 && iter < 1000
+  while abs(abs(ψ_old' ⋅ ψ) - 1.0) > sqrt((1e-6)^2*length(ψ))
     ψ_old = ψ
     ψ = normalize(H*ψ)
-    iter += 1
   end
-  plot!(plt1, ψ)
 
-  for x in range(0, length=1)
+  for x in range(0, length=Int(N/2))
     corr[gind, x+1] = spinspin_correlation(ψ, b, N, x)
   end
-  plot!(plt2, corr[gind, :], label=@sprintf("g = %1.3f", g), marker=:circle)
+  plt = plot(corr[gind, :].^2, label=@sprintf("g = %1.3f", g), marker=:circle)
+  plot!(yaxis=:log, size=(250,250))
+  if g <= gc
+    plot!(xaxis=:log)
+  end
+  display(plt)
 end
-display(plt1)
-display(plt2)
+```
+
+We can see that indeed the correlation decays as a power law for $g \leq g_c$ and exponentially for $g > g_c$. for $g = 1/2$ we get a constant almost-zero correlation which I don't understand yet.
 ```
