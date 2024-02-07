@@ -551,52 +551,64 @@ function bondbond_correlation(ψ::Vector{<:Number}, b::fixed_sz_basis, N::Intege
   corr = 0
   mean1 = 0
   mean2 = 0
-  for (substateind, coeff) in enumerate(ψ)
-    if mod(substateind, 2) == 0 # <1>
-      continue # <1>
-    end # <1>
+  for (substateind, coeff) in enumerate(ψ) # <1>
+    stateind = b.states[substateind] # <1>
+    state = 2 .* index2state(stateind, N) .- 1 # <1>
 
-    stateind1 = b.states[substateind]
-    state = 2 .* index2state(stateind1, N) .- 1
-    bond1 = abs(coeff)^2 * state[1] * state[2]
-    bond2 = abs(coeff)^2 * state[mod(x,N)+1] * state[mod(x+1,N)+1]
-    corr += abs(coeff)^2 * bond1 * bond2
-    mean1 += abs(coeff)^2 * bond1
-    mean2 += abs(coeff)^2 * bond2
+    bond1 = state[1] * state[2]# <2>
+    bond2 = state[mod(x,N)+1] * state[mod(x+1,N)+1]# <2>
+    corr += abs(coeff)^2 * bond1 * bond2 # <3>
+    mean1 += abs(coeff)^2 * bond1 # <3>
+    mean2 += abs(coeff)^2 * bond2 # <3>
   end
-  var = corr - mean1 * mean2
-  return var
+  var = corr - mean1 * mean2 # <4>
+  return var # <4>
 end
 ```
-1. Loop over pairs
+1. Loop over states in form of $S^{z}_{i} =\pm 1$
+2. Calculate bonds $B_1, B_{1+x}$
+3. Calculate the correlation $\left<B^{z}_1 B^{z}_{1+x}\right>$ and means $\left<B_1\right>, \left<B_{1+x}\right>$
+4. Return the difference as required
 
 We test this function in the same manner we did in Question 4:
 
 ```{julia}
 #| label: fig-ground-state-bondbond-correlation
+#| layout-ncol: 2
+#| layout-nrow: 2
+#| fig-subcap:
+#|   - "loglog plot for $g=0$"
+#|   - "loglog plot for $g=g_c$"
+#|   - "semilogy plot for $g=0.45$"
+#|   - "semilogy plot for $g=0.5$"
 N = 16
 D = 2^N
 J1 = 1.0
 
 corr = zeros(length(garr), Int(N/2))
 
-plt = plot()
 for (gind, g) in enumerate(garr)
-  J2 = g*J1
-  b = fixed_sz_basis(N, Int(N/2))
-  H = construct_g_hamiltonian(b, J1, J2)
+  J2 = g*J1 # <1>
+  b = fixed_sz_basis(N, Int(N/2)) # <1>
+  H = construct_g_hamiltonian(b, J1, J2) # <1>
 
-  ψ = normalize(rand(rng, length(b)))
-  ψ_old = normalize(rand(rng, length(b)))
-  while abs(abs(ψ_old' ⋅ ψ) - 1.0) > sqrt((1e-6)^2*length(ψ))
-    ψ_old = ψ
-    ψ = normalize(H*ψ)
-  end
+  ψ = normalize(rand(rng, length(b))) # <2>
+  ψ_old = normalize(rand(rng, length(b))) # <2>
+  while abs(abs(ψ_old' ⋅ ψ) - 1.0) > sqrt((1e-6)^2*length(ψ)) # <2>
+    ψ_old = ψ # <2>
+    ψ = normalize(H*ψ) # <2>
+  end # <2>
 
-  for x in range(0, length=Int(N/2))
-    corr[gind, x+1] = bondbond_correlation(ψ, b, N, x)
-  end
-  plot!(corr[gind, :].^2, label=@sprintf("g = %1.3f", g), marker=:circle)
+  for x in range(0, length=Int(N/2)) # <3>
+    corr[gind, x+1] = bondbond_correlation(ψ, b, N, x) # <3>
+  end # <3>
+  plt = plot(corr[gind, :].^2, label=@sprintf("g = %1.3f", g), marker=:circle) # <3>
+  plot!(yaxis=:log, size=(250,250)) # <3>
+  display(plt) # <3>
 end
-display(plt)
 ```
+1. Generate constants $S_z$ basis and Hamiltonian
+2. Estimate ground state by repeated Hamiltonian applications
+3. Calculate and plot Correlations in the ground state
+
+We can see that for $g<g_c$ the correlation decays roughly exponentially, while for $g>g_c$ the correlation decays fast but saturates to a constant value for large $x$ values, just as expected.
