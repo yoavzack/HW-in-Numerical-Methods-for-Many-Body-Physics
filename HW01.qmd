@@ -4,34 +4,12 @@ author: "Yoav Zack"
 date: today
 format:
   html:
-    theme: 
-      light: united
-      dark: darkly
+    theme: darkly
     code-annotations: hover
     mainfont: "Latin Modern Roman Bold"
     monofont: "JetBrains Mono"
-    code-fold: true
+    code-fold: false
 ---
-
-```{julia}
-#| output: false
-#| echo: false
-#| label: imports-and-constants
-using LinearAlgebra
-using Random
-using Plots
-using Printf
-using SparseArrays
-using Arpack
-using LsqFit
-
-
-theme(:dracula)
-# theme(:default)
-default(background_color=:transparent, dpi=300)
-
-rng = MersenneTwister(42);
-```
 
 In this assignment we will work on the $(J_1,J_2)$ spin-$\frac{1}{2}$ extension to the [Heisenberg model](https://en.wikipedia.org/wiki/Quantum_Heisenberg_model), which is sometimes called the [J1-J2 Model](https://en.wikipedia.org/wiki/J1_J2_model):
 
@@ -39,11 +17,11 @@ $$
 H = J_1 \sum_{i} \vec{S}_{i} \cdot \vec{S}_{i+1} + J_{2} \sum_{i}\vec{S}_{i} \cdot \vec{S}_{i+2}
 $$
 
-We assume $J_1 >0, J_2 \geq 0$ and denote $g = J_2/J_1$.
+We assume $J_1 > 0, J_2 \geq 0$ and denote $g = J_2/J_1$.
 
 # Question #0: Warm Up
 
-We assume $J_2=0$ as required, thus the Hamiltonian is the Heisenberg one:
+We assume $J_2 = 0$ as required, thus the Hamiltonian is the Heisenberg one:
 
 $$
 H = J_1 \sum_{i} \vec{S}_{i} \cdot \vec{S}_{i+1} = J_{1} \sum_{\left<i,j\right>} \left[\frac{1}{2}(\sigma^+_i \sigma^-_j + \sigma^-_i \sigma^+_j) +\frac{1}{4} \sigma^z_i \sigma^z_j \right]
@@ -54,11 +32,29 @@ This means the for each pair of adjacent spins $i,j$, the state $\ket{\psi}$ tur
 1. A state with switched places for all pairs of opposite spins, with coefficient $-\frac{J_1}{2}$.
 2. The same state as $\ket{\psi}$, with a coefficient $\frac{J_1}{4}$ and also a sum over all pairs of adjacent spins, $+1$ for ++/-- and $-1$ for +-/-+.
 
-Note that this means that the state $\ket{\psi}$ of the system must be represented as an array of real numbers, each on corresponding to the coefficient of a single pure state in the superposition, while each pure state is still a single `UInt`. We can convert from the index of a state to itself using the following function:
+Note that this means that the state $\ket{\psi}$ of the system must be represented as an array of real numbers, each on corresponding to the coefficient of a single pure state in the superposition, while each pure state is still a single `UInt`.
+
+But first, some imports:
 
 ```{julia}
+#| label: imports-and-constants
 #| output: false
+using LinearAlgebra, SparseArrays, Arpack, Random
+using Plots, Printf
+using LsqFit
+
+theme(:dracula)
+# theme(:default)
+default(background_color=:transparent, dpi=300)
+
+rng = MersenneTwister(42);
+```
+
+We start by creating a function to convert from the index of a state to the state itself, which we will use a lot later:
+
+```{julia}
 #| label: function-index-to-state
+#| output: false
 function index2state(stateind::Integer, N::Integer)
   return digits(stateind, base=2, pad=N)
 end
@@ -67,8 +63,8 @@ end
 And now that we have that, we will use it to calculate the effect of the Hamiltonian on a general wave function:
 
 ```{julia}
-#| output: false
 #| label: function-heisenberg-hamiltonian
+#| output: false
 function multiply_heisenberg(ψ::Vector{<:Number}, J1::Real)
   @assert abs(norm(ψ) - 1) < 1e-9 "Input state is not normalized" # <1>
   D = length(ψ) # <1>
@@ -78,11 +74,10 @@ function multiply_heisenberg(ψ::Vector{<:Number}, J1::Real)
 
   ψout = zeros(D)
   for stateind in range(0, length=D)
-    state = index2state(stateind, N)
-    for (i, si) in enumerate(state)
-      si = si*2-1 # <2>
+    state = index2state(stateind, N) # <2>
+    for (i, si) in enumerate(state) # <2>
       j = mod(i,N)+1 # <2>
-      sj = state[j]*2-1 # <2>
+      sj = state[j] # <2>
       if si == sj
         ψout[stateind+1] += J1/4 # <3>
       else
@@ -96,35 +91,16 @@ function multiply_heisenberg(ψ::Vector{<:Number}, J1::Real)
 end
 ```
 1. Parse Space size and number of spins from wave-function
-2. Get the $i$-th and $j$-th spins as +1/-1
+2. Get the $i$-th and $j$-th spin
 3. Calculate effect of $\sigma_i^z \sigma_j^z$ on $\psi$
 4. Calculate effect of $\frac{1}{2}(\sigma^+_i \sigma^-_j + \sigma^-_i \sigma^+_j)$ on $\psi$
 5. Normalize state (the Hamiltonian above is not normalized)
 
-Let's check it on a simple case:
+In order to calculate the energy of the ground state, we need to create it first. The ground state for $N$ spins in a Heisenberg chain is Ferromagnetic for $J<0$ and Antiferromagnetic for $J>0$, i.e. the Néel State. So the function which generates the ground state is the following:
 
 ```{julia}
-#| label: fig-repeated-test
-#| fig-cap: "Test case of the Hamiltonian function"
-N = 6
-D = 2^N
-count = 10000
-ψ = normalize(rand(rng,D))
-plot(ψ, label="Original ψ")
-for ind in range(0, length=count)
-  ψ = multiply_heisenberg(ψ, 1.0)
-end
-plot!(ψ, label=@sprintf("%d Applications of H", count))
-title!("Evolution over Hamiltonian Applications")
-```
-
-We will calculate the energy of the ground state and of the output state, and see that the output state approaches the ground state.
-
-The ground state for $N$ spins in a Heisenberg chain is Ferromagnetic for $J<0$ and Antiferromagnetic for $J>0$, i.e. the Néel State. So the function which generates the ground state is the following:
-
-```{julia}
-#| output: false
 #| label: function-neel-state
+#| output: false
 #| fig-cap: "Test case of Néel State"
 function neel_state(N::Integer, J::Real)
   @assert N>0 "Spin count must be positive"
@@ -143,25 +119,13 @@ function neel_state(N::Integer, J::Real)
 end
 ```
 
-We can test it using a simple test case:
-
-```{julia}
-#| label: fig-neel-test
-J = 1.0
-N = 6
-ψ = neel_state(N, J)
-maxVal, maxInd = findmax(ψ)
-state = index2state(maxInd, N)
-plot(ψ, label="Heisenberg State")
-```
-
 To compare the energy of this state to the one we got by repeatedly applying the Hamiltonian we need a function to calculate the energy of a state:
 
 ```{julia}
-#| output: false
 #| label: function-energy-of-state
-function state_energy(ψ::Vector{<:Number})
-  return ψ'⋅multiply_heisenberg(ψ, 1.0)
+#| output: false
+function heisenberg_energy(ψ::Vector{<:Number}, J::Real)
+  return ψ'⋅multiply_heisenberg(ψ, J)
 end
 ```
 
@@ -179,8 +143,8 @@ Erng = zeros(iternum)
 ENeel = zeros(iternum)
 for ind in range(1, length=iternum)
   ψ = multiply_heisenberg(ψ, 1.0);
-  Erng[ind] = state_energy(ψ)
-  ENeel[ind] = state_energy(ψNeel)
+  Erng[ind] = heisenberg_energy(ψ, J)
+  ENeel[ind] = heisenberg_energy(ψNeel, J)
 end
 
 plot(Erng , label="Repeated Hamiltonian")
