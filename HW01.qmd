@@ -27,12 +27,12 @@ $$
 H = J_1 \sum_{i} \vec{S}_{i} \cdot \vec{S}_{i+1} = J_{1} \sum_{\left<i,j\right>} \left[\frac{1}{2}(\sigma^+_i \sigma^-_j + \sigma^-_i \sigma^+_j) +\frac{1}{4} \sigma^z_i \sigma^z_j \right]
 $$
 
-This means the for each pair of adjacent spins $i,j$, the state $\ket{\psi}$ turns into a sum of two elements:
+This means the for each pair of adjacent spins $i,j$, the state $\left|\psi\right>$ turns into a sum of two elements:
 
 1. A state with switched places for all pairs of opposite spins, with coefficient $-\frac{J_1}{2}$.
-2. The same state as $\ket{\psi}$, with a coefficient $\frac{J_1}{4}$ and also a sum over all pairs of adjacent spins, $+1$ for ++/-- and $-1$ for +-/-+.
+2. The same state as $\left|\psi\right>$, with a coefficient $\frac{J_1}{4}$ and also a sum over all pairs of adjacent spins, $+1$ for ++/-- and $-1$ for +-/-+.
 
-Note that this means that the state $\ket{\psi}$ of the system must be represented as an array of real numbers, each on corresponding to the coefficient of a single pure state in the superposition, while each pure state is still a single `UInt`.
+Note that this means that the state $\left|\psi\right>$ of the system must be represented as an array of real numbers, each on corresponding to the coefficient of a single pure state in the superposition, while each pure state is still a single `UInt`.
 
 But first, some imports:
 
@@ -133,6 +133,7 @@ Using it we can calculate the energy after repeatedly applying the Hamiltonian a
 
 ```{julia}
 #| label: test-repeated-energy
+#| fig-cap: "Energy over repeated applications of the Hamiltonian"
 J = 1.0
 N = 16
 ψ = normalize(rand(rng,2^N))
@@ -149,7 +150,6 @@ end
 
 plot(Erng , label="Repeated Hamiltonian")
 plot!(ENeel , label="Néel State")
-title!("Energy over repeated applications of H")
 xlabel!("Application Count")
 ylabel!("Energy")
 ```
@@ -405,7 +405,7 @@ This is not exactly a linear relation, but it is about linear. I guess this is t
 
 # Question 4: Spin-Spin Correlations
 
-We first write a function which takes a wavefunction $\ket{\psi}$ and a basis $b$ and returns the spin-spin correlation $\left< S_i S_{1+x} \right>$:
+We first write a function which takes a wavefunction $\left|\psi\right>$ and a basis $b$ and returns the spin-spin correlation $\left< S_i S_{1+x} \right>$:
 
 ```{julia}
 #| label: function-spinspin-correlations
