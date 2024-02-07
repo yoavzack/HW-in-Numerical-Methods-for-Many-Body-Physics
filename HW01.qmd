@@ -459,7 +459,7 @@ for (gind, g) in enumerate(garr)
     corr[gind, x+1] = spinspin_correlation(ψ, b, N, x) # <3>
   end # <3>
   plt = plot(corr[gind, :].^2, label=@sprintf("g = %1.3f", g), marker=:circle) # <3>
-  plot!(yaxis=:log, size=(250,250)) # <3>
+  plot!(yaxis=:log, size=(250,200)) # <3>
   if g <= gc # <4>
     plot!(xaxis=:log) # <4>
   end # <4>
@@ -467,7 +467,7 @@ for (gind, g) in enumerate(garr)
 end
 ```
 1. Generate constants $S_z$ basis and Hamiltonian
-2. Estimate ground state by repeated Hamiltonian applications
+2. Estimate ground state by repeated Hamiltonian applications until the state converges
 3. Calculate and plot Correlations in the ground state
 4. If $g \leq g_c$ we plot in log-log instead of semilog-y, since we want to see a power law
 
@@ -539,7 +539,7 @@ for (gind, g) in enumerate(garr)
     corr[gind, x+1] = bondbond_correlation(ψ, b, N, x) # <3>
   end # <3>
   plt = plot(corr[gind, :].^2, label=@sprintf("g = %1.3f", g), marker=:circle) # <3>
-  plot!(yaxis=:log, size=(250,250)) # <3>
+  plot!(yaxis=:log, size=(250,200)) # <3>
   display(plt) # <3>
 end
 ```
