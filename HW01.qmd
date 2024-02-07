@@ -441,40 +441,7 @@ This is not exactly a linear relation, but it is about linear. I guess this is t
 
 # Question 4: Spin-Spin Correlations
 
-To calculate the spin-spin correlation of a the ground state, we first need the ground state. We already have the Néel State which is the ground state for $g < g_c$, but for $g>g_c$ we need to generate Dimer States, using the following function:
-
-```{julia}
-#| label: function-dimer-state
-#| output: false
-function bitarr2int(arr::Vector{<:Integer})
-  return sum(arr .* (2 .^ collect(0:length(arr)-1))) # <2>
-end
-
-function dimer_state(N::Integer)
-  @assert N>0 "Number of spins must be positive"
-  @assert mod(N,2)==0 "Only even number of spins are supported"
-
-  D = 2^N
-  ψ_p = zeros(D)
-  ψ_m = zeros(D)
-  for stateInd in range(0, length=2^Int(N/2))
-    pairs = index2state(stateInd, Int(N/2))
-    index_p = 0
-    index_m = 0
-    sign = 1
-    for (pairInd, pair) in enumerate(pairs)
-      index_p += 2^(2*(pairInd-1)+pair)
-      sign *= 2*pair-1
-    end
-    index_m = bitarr2int(circshift(index2state(index_p, N), 1))
-    ψ_p[index_p+1] += sign
-    ψ_m[index_m+1] += sign
-  end
-  return [normalize(ψ_p .+ ψ_m), normalize(ψ_p .- ψ_m)]
-end
-```
-
-Now that we have the states, we can calculate the spin-spin correlation:
+We first write a function which takes a wavefunction $\ket{\psi}$ and a basis $b$ and returns the spin-spin correlation $\left< S_i S_{1+x} \right>$:
 
 ```{julia}
 #| label: function-spinspin-correlations
@@ -485,19 +452,20 @@ function spinspin_correlation(ψ::Vector{<:Number}, b::fixed_sz_basis, N::Intege
 
   corr = 0
   for (substateind, coeff) in enumerate(ψ)
-    stateind = b.states[substateind]
+    stateind = b.states[substateind] # <1>
     state = 2 .* index2state(stateind, N) .- 1
     corr += abs(coeff)^2 * state[1] * state[mod(x,N)+1]
   end
   return corr
 end
 ```
+1. Since we work in constant $S_z$ basis, states are numbered in `b` and not in `ψ`.
 
 We will test the Spin-Spin correlation on the ground state of several Hamiltonians, each for a different value of $g$. To get the ground state, we will apply the Hamiltonian to a random state repeatedly until the state no longer changes:
 
 ```{julia}
 #| label: fig-ground-state-spinspin-correlation
-#| fig-cap: "The spin-spin correlation $\braket{S_{i} | S_{i+x}}$ for different $x$ values, in a log-log plot."
+#| fig-cap: "The spin-spin correlation for different $x$ values"
 #| layout-ncol: 2
 #| layout-nrow: 2
 #| fig-subcap:
@@ -512,30 +480,34 @@ J1 = 1.0
 corr = zeros(length(garr), Int(N/2))
 
 for (gind, g) in enumerate(garr)
-  J2 = g*J1
-  b = fixed_sz_basis(N, Int(N/2))
-  H = construct_g_hamiltonian(b, J1, J2)
+  J2 = g*J1 # <1>
+  b = fixed_sz_basis(N, Int(N/2)) # <1>
+  H = construct_g_hamiltonian(b, J1, J2) # <1>
 
-  ψ = normalize(rand(rng, length(b)))
-  ψ_old = normalize(rand(rng, length(b)))
-  while abs(abs(ψ_old' ⋅ ψ) - 1.0) > sqrt((1e-6)^2*length(ψ))
-    ψ_old = ψ
-    ψ = normalize(H*ψ)
-  end
+  ψ = normalize(rand(rng, length(b))) # <2>
+  ψ_old = normalize(rand(rng, length(b))) # <2>
+  while abs(abs(ψ_old' ⋅ ψ) - 1.0) > sqrt((1e-6)^2*length(ψ)) # <2>
+    ψ_old = ψ # <2>
+    ψ = normalize(H*ψ) # <2>
+  end # <2>
 
-  for x in range(0, length=Int(N/2))
-    corr[gind, x+1] = spinspin_correlation(ψ, b, N, x)
-  end
-  plt = plot(corr[gind, :].^2, label=@sprintf("g = %1.3f", g), marker=:circle)
-  plot!(yaxis=:log, size=(250,250))
-  if g <= gc
-    plot!(xaxis=:log)
-  end
+  for x in range(0, length=Int(N/2)) # <3>
+    corr[gind, x+1] = spinspin_correlation(ψ, b, N, x) # <3>
+  end # <3>
+  plt = plot(corr[gind, :].^2, label=@sprintf("g = %1.3f", g), marker=:circle) # <3>
+  plot!(yaxis=:log, size=(250,250)) # <3>
+  if g <= gc # <4>
+    plot!(xaxis=:log) # <4>
+  end # <4>
   display(plt)
 end
 ```
+1. Generate constants $S_z$ basis and Hamiltonian
+2. Estimate ground state by repeated Hamiltonian applications
+3. Calculate and plot Correlations in the ground state
+4. If $g \leq g_c$ we plot in log-log instead of semilog-y, since we want to see a power law
 
-We can see that indeed the correlation decays as a power law for $g \leq g_c$ and exponentially for $g > g_c$. for $g = 1/2$ we get a constant almost-zero correlation which I don't understand yet.
+We can see that indeed the correlation decays as a power law for $g \leq g_c$ and exponentially for $g > g_c$. For $g = 1/2$ we get a constant almost-zero correlation which I don't understand yet. #TODO
 
 # Question 5
 
