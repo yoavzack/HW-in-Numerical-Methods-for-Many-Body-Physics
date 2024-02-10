@@ -9,6 +9,7 @@ format:
     mainfont: "Latin Modern Roman Bold"
     monofont: "JetBrains Mono"
     code-fold: false
+    toc: true
 ---
 
 In this assignment we will work on the $(J_1,J_2)$ spin-$\frac{1}{2}$ extension to the [Heisenberg model](https://en.wikipedia.org/wiki/Quantum_Heisenberg_model), which is sometimes called the [J1-J2 Model](https://en.wikipedia.org/wiki/J1_J2_model):
@@ -427,7 +428,7 @@ function spinspin_correlation(ψ::Vector{<:Number}, b::fixed_sz_basis, N::Intege
 
   corr = 0
   for (substateind, coeff) in enumerate(ψ)
-    stateind = b.states[substateind] # <1>
+    stateind = b.states[substateind]
     state = 2 .* index2state(stateind, N) .- 1
     corr += abs(coeff)^2 * state[1] * state[mod(x,N)+1]
   end
@@ -436,22 +437,23 @@ end
 ```
 1. Since we work in constant $S_z$ basis, states are numbered in `b` and not in `ψ`.
 
-We will test the Spin-Spin correlation on the ground state of several Hamiltonians, each for a different value of $g$. To get the ground state, we will apply the Hamiltonian to a random state repeatedly until the state no longer changes:
+We will test the Spin-Spin correlation on the ground state of several Hamiltonians, each for a different value of $g$. To get the ground state, we will just take the 2nd output of the `eigs` function from `Arpack`:
 
 ```{julia}
 #| label: fig-ground-state-spinspin-correlation
-#| fig-cap: "The spin-spin correlation for different $x$ values"
+#| fig-cap: "The spin-spin correlation for different $x$ abd $g$ values"
 #| layout-ncol: 2
 #| layout-nrow: 2
 #| fig-subcap:
-#|   - "loglog plot for $g=0$"
-#|   - "loglog plot for $g=g_c$"
-#|   - "semilogy plot for $g=0.45$"
+#|   - "log-log plot for $g=0$"
+#|   - "log-log plot for $g=g_c$"
+#|   - "semilogy plot for $g=0.49$"
 #|   - "semilogy plot for $g=0.5$"
-N = 16
+N = Nmax
 D = 2^N
 J1 = 1.0
 
+xarr = range(0, length=Int(N/2))
 corr = zeros(length(garr), Int(N/2))
 
 for (gind, g) in enumerate(garr)
@@ -459,32 +461,32 @@ for (gind, g) in enumerate(garr)
   b = fixed_sz_basis(N, Int(N/2)) # <1>
   H = construct_g_hamiltonian(b, J1, J2) # <1>
 
-  ψ = normalize(rand(rng, length(b))) # <2>
-  ψ_old = normalize(rand(rng, length(b))) # <2>
-  while abs(abs(ψ_old' ⋅ ψ) - 1.0) > sqrt((1e-6)^2*length(ψ)) # <2>
-    ψ_old = ψ # <2>
-    ψ = normalize(H*ψ) # <2>
-  end # <2>
+  _, ψ = eigs(H; nev=1, which=:SR) # <2>
+  ψ = vec(ψ) # <2>
 
-  for x in range(0, length=Int(N/2)) # <3>
+  for x in xarr # <3>
     corr[gind, x+1] = spinspin_correlation(ψ, b, N, x) # <3>
   end # <3>
-  plt = plot(corr[gind, :].^2, label=@sprintf("g = %1.3f", g), marker=:circle) # <3>
+
+  plt = plot(xarr.+1, corr[gind, :].^2, label=@sprintf("g = %1.3f", g), 
+    marker=:circle, xlabel="x", ylabel="Correlation") # <3>
   plot!(yaxis=:log, size=(250,200)) # <3>
-  if g <= gc # <4>
+
+  # if g <= gc # <4>
     plot!(xaxis=:log) # <4>
-  end # <4>
+  # end # <4>
+
   display(plt)
 end
 ```
 1. Generate constants $S_z$ basis and Hamiltonian
-2. Estimate ground state by repeated Hamiltonian applications until the state converges
+2. Get ground state by `Arpack`
 3. Calculate and plot Correlations in the ground state
 4. If $g \leq g_c$ we plot in log-log instead of semilog-y, since we want to see a power law
 
-We can see that indeed the correlation decays as a power law for $g \leq g_c$ and exponentially for $g > g_c$. For $g = 1/2$ we get a constant almost-zero correlation which I don't understand yet. #TODO
+We can see that indeed the correlation decays as a power law for $g \leq g_c$ a expected, but for $g > g_c$ and $g = 1/2$ we get unexpected behavior: for $g=1/2$ the correlation stops decaying and saturates to a given level (what should only happen when talking about bond-bond correlations, I think), and the in the $1/2>g>g_c$ we see a middle state between a power law and saturation.
 
-# Question 5
+# Question 5: Bond-Bond Correlations
 
 Next we want to calculate the bond-bind correlation on the ground state in each case. First, we write a function which calculates the correlation, similar to the one from Question 4:
 
@@ -521,17 +523,19 @@ We test this function in the same manner we did in Question 4:
 
 ```{julia}
 #| label: fig-ground-state-bondbond-correlation
+#| fig-cap: "The bond-bond correlation for different $x$ and $g$ values"
 #| layout-ncol: 2
 #| layout-nrow: 2
 #| fig-subcap:
-#|   - "loglog plot for $g=0$"
-#|   - "loglog plot for $g=g_c$"
-#|   - "semilogy plot for $g=0.45$"
-#|   - "semilogy plot for $g=0.5$"
-N = 16
+#|   - "log-log plot for $g=0$"
+#|   - "log-log plot for $g=g_c$"
+#|   - "log-log plot for $g=0.49$"
+#|   - "log-log plot for $g=0.5$"
+N = Nmax
 D = 2^N
 J1 = 1.0
 
+xarr = range(0, length=Int(N/2))
 corr = zeros(length(garr), Int(N/2))
 
 for (gind, g) in enumerate(garr)
@@ -539,23 +543,19 @@ for (gind, g) in enumerate(garr)
   b = fixed_sz_basis(N, Int(N/2)) # <1>
   H = construct_g_hamiltonian(b, J1, J2) # <1>
 
-  ψ = normalize(rand(rng, length(b))) # <2>
-  ψ_old = normalize(rand(rng, length(b))) # <2>
-  while abs(abs(ψ_old' ⋅ ψ) - 1.0) > sqrt((1e-6)^2*length(ψ)) # <2>
-    ψ_old = ψ # <2>
-    ψ = normalize(H*ψ) # <2>
-  end # <2>
+  _, ψ = eigs(H; nev=1, which=:SR) # <2>
+  ψ = vec(ψ) # <2>
 
-  for x in range(0, length=Int(N/2)) # <3>
+  for x in xarr # <3>
     corr[gind, x+1] = bondbond_correlation(ψ, b, N, x) # <3>
   end # <3>
-  plt = plot(corr[gind, :].^2, label=@sprintf("g = %1.3f", g), marker=:circle) # <3>
-  plot!(yaxis=:log, size=(250,200)) # <3>
+  plt = plot(xarr .+ 1, corr[gind, :].^2, label=@sprintf("g = %1.3f", g), marker=:circle, xlabel="x", ylabel="Correlation") # <3>
+  plot!(xaxis=:log, yaxis=:log, size=(250,200)) # <3>
   display(plt) # <3>
 end
 ```
 1. Generate constants $S_z$ basis and Hamiltonian
-2. Estimate ground state by repeated Hamiltonian applications
+2. Get the ground state by `Arpack`
 3. Calculate and plot Correlations in the ground state
 
-We can see that for $g<g_c$ the correlation decays roughly exponentially, while for $g>g_c$ the correlation decays fast but saturates to a constant value for large $x$ values, just as expected.
+We can see that for $g<g_c$ the correlation decays roughly as a power law, while for $g>g_c$ the correlation decays fast but saturates to a constant value for large $x$ values, just as expected.
