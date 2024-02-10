@@ -19,7 +19,7 @@ $$
 
 We assume $J_1 > 0, J_2 \geq 0$ and denote $g = J_2/J_1$.
 
-# Question #0: Warm Up
+# Question 0: Warm Up
 
 We assume $J_2 = 0$ as required, thus the Hamiltonian is the Heisenberg one:
 
@@ -34,13 +34,13 @@ This means the for each pair of adjacent spins $i,j$, the state $\left|\psi\righ
 
 Note that this means that the state $\left|\psi\right>$ of the system must be represented as an array of real numbers, each on corresponding to the coefficient of a single pure state in the superposition, while each pure state is still a single `UInt`.
 
-But first, some imports:
+But first, some imports and global definitions:
 
 ```{julia}
 #| label: imports-and-constants
 #| output: false
 using LinearAlgebra, SparseArrays, Arpack, Random
-using Plots, Printf
+using Plots, Printf, LaTeXStrings
 using LsqFit
 
 theme(:dracula)
@@ -48,9 +48,11 @@ theme(:dracula)
 default(background_color=:transparent, dpi=300)
 
 rng = MersenneTwister(42);
+
+Nmax = 12 # runs up to Nmax=16. Nmax=18 is a bit too much for my computers.
 ```
 
-We start by creating a function to convert from the index of a state to the state itself, which we will use a lot later:
+We start by creating two functions which we will use a lot later:
 
 ```{julia}
 #| label: function-index-to-state
@@ -58,14 +60,23 @@ We start by creating a function to convert from the index of a state to the stat
 function index2state(stateind::Integer, N::Integer)
   return digits(stateind, base=2, pad=N)
 end
+
+function flipspins(x,i,j) # takes i=(1,N) and j=(1,N)
+    f = typeof(x)(1)<<(i-1) | typeof(x)(1)<<(j-1) 
+    return x ⊻ f
+end
+
+function ground_state_energy(H)
+  return eigs(H; nev=1, which=:SR, ritzvec=false)[1][1]
+end
 ```
 
 And now that we have that, we will use it to calculate the effect of the Hamiltonian on a general wave function:
 
 ```{julia}
-#| label: function-heisenberg-hamiltonian
+#| label: function-multiply-heisenberg-hamiltonian
 #| output: false
-function multiply_heisenberg(ψ::Vector{<:Number}, J1::Real)
+function multiply_heisenberg(ψ::Vector{<:Number}, J::Real)
   @assert abs(norm(ψ) - 1) < 1e-9 "Input state is not normalized" # <1>
   D = length(ψ) # <1>
   @assert ispow2(D) "Input state has invalid number of elements" # <1>
@@ -74,19 +85,20 @@ function multiply_heisenberg(ψ::Vector{<:Number}, J1::Real)
 
   ψout = zeros(D)
   for stateind in range(0, length=D)
-    state = index2state(stateind, N) # <2>
-    for (i, si) in enumerate(state) # <2>
+    for i in range(1, length=N) # <2>
       j = mod(i,N)+1 # <2>
-      sj = state[j] # <2>
+      si = ( stateind & 1<<(i-1) ) >> (i-1)
+      sj = ( stateind & 1<<(j-1) ) >> (j-1)
+
       if si == sj
-        ψout[stateind+1] += J1/4 # <3>
+        ψout[stateind+1] += J/4*ψ[stateind+1] # <3>
       else
-        ψout[stateind+1] -= J1/4 # <3>
-        ψout[stateind+1] -= J1/2 # <4>
+        ψout[stateind+1] -= J/4*ψ[stateind+1] # <3>
+        stateind_flipped = flipspins(stateind, i, j)
+        ψout[stateind_flipped+1] += J/2*ψ[stateind+1] # <4>
       end
     end
   end
-  ψout = normalize!(ψout.*ψ) # <5>
   return ψout
 end
 ```
@@ -96,65 +108,72 @@ end
 4. Calculate effect of $\frac{1}{2}(\sigma^+_i \sigma^-_j + \sigma^-_i \sigma^+_j)$ on $\psi$
 5. Normalize state (the Hamiltonian above is not normalized)
 
-In order to calculate the energy of the ground state, we need to create it first. The ground state for $N$ spins in a Heisenberg chain is Ferromagnetic for $J<0$ and Antiferromagnetic for $J>0$, i.e. the Néel State. So the function which generates the ground state is the following:
+In order to get the energy of the ground state, we will also need the Hamiltonian matrix from class:
 
 ```{julia}
-#| label: function-neel-state
+#| label: function-heisenberg-hamiltonian
 #| output: false
-#| fig-cap: "Test case of Néel State"
-function neel_state(N::Integer, J::Real)
-  @assert N>0 "Spin count must be positive"
-  @assert J != 0 "Coupling constant cannot be zero"
-  D = 2^N
-  ψ = zeros(D)
+function heisenberg_hamiltonian(N)    
+    H = spzeros(2^N,2^N)
 
-  if J<0
-    stateind = sum([2^spinind for spinind in 0:(N-1)])
-  else
-    stateind = sum([2^spinind for spinind in 0:2:(N-1)])
-  end
+    for stateind in range(0, length = 2^N)
+        for i in range(1, length = N)
+            j = mod(i,N)+1 # periodic boundary conditions
+            si = ( stateind & 1<<(i-1) ) >> (i-1)
+            sj = ( stateind & 1<<(j-1) ) >> (j-1)
 
-  ψ[stateind] = 1
-  return ψ
+            if si == sj
+                H[stateind+1,stateind+1] += 1/4 # indexing in Julia is 1-based !!!
+            else
+                H[stateind+1,stateind+1] -= 1/4
+                stateind_flipped = flipspins(stateind,i,j)
+                H[stateind+1,stateind_flipped+1] += 1/2
+            end
+        end
+    end
+    
+    return H
 end
 ```
 
-To compare the energy of this state to the one we got by repeatedly applying the Hamiltonian we need a function to calculate the energy of a state:
+and a function which calculates the energy of a given stateL
 
 ```{julia}
 #| label: function-energy-of-state
 #| output: false
 function heisenberg_energy(ψ::Vector{<:Number}, J::Real)
-  return ψ'⋅multiply_heisenberg(ψ, J)
+  return ψ⋅multiply_heisenberg(ψ, J)
 end
 ```
 
 Using it we can calculate the energy after repeatedly applying the Hamiltonian and see that it converges to the ground state energy:
 
 ```{julia}
-#| label: test-repeated-energy
+#| label: fig-repeated-energy
 #| fig-cap: "Energy over repeated applications of the Hamiltonian"
 J = 1.0
-N = 16
+N = Nmax
 ψ = normalize(rand(rng,2^N))
-ψNeel = neel_state(N, J)
+
+H = heisenberg_hamiltonian(N)
+Emin = ground_state_energy(H)
 
 iternum = 50
 Erng = zeros(iternum)
-ENeel = zeros(iternum)
+Eground = zeros(iternum)
 for ind in range(1, length=iternum)
-  ψ = multiply_heisenberg(ψ, 1.0);
+  ψ = multiply_heisenberg(ψ, J)
+  normalize!(ψ)
   Erng[ind] = heisenberg_energy(ψ, J)
-  ENeel[ind] = heisenberg_energy(ψNeel, J)
+  Eground[ind] = Emin
 end
 
-plot(Erng , label="Repeated Hamiltonian")
-plot!(ENeel , label="Néel State")
+plot(Erng .- Eground , label=nothing, yaxis=:log, marker=:circle)
 xlabel!("Application Count")
-ylabel!("Energy")
+ylabel!("ΔE from Ground State")
 ```
 
-And we can see that the energy of the state goes towards the energy of the Néel State, as expected.
+And we can see that the energy of the state goes towards the energy of the Ground State, as expected.
 
 # Question #1: Hamiltonian for $g\neq0$
 
