@@ -4,14 +4,28 @@ author: "Yoav Zack"
 date: today
 format:
   html:
-    theme: darkly
+    toc: true
+    theme: united
+    code-fold: false
+    code-overflow: wrap
     code-annotations: hover
+    embed-resources: true
     mainfont: "Latin Modern Roman Bold"
     monofont: "JetBrains Mono"
+  pdf:
+    toc: false
     code-fold: false
-    toc: true
+    code-overflow: wrap
+    code-annotations: none
+    embed-resources: true
+    colorlinks: true
+    keep-tex: true
+    include-in-header: 
+       text: |
+         \usepackage{fvextra}
+         \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
+         \DefineVerbatimEnvironment{OutputCode}{Verbatim}{breaklines,commandchars=\\\{\}}
 ---
-
 In this assignment we will work on the $(J_1,J_2)$ spin-$\frac{1}{2}$ extension to the [Heisenberg model](https://en.wikipedia.org/wiki/Quantum_Heisenberg_model), which is sometimes called the [J1-J2 Model](https://en.wikipedia.org/wiki/J1_J2_model):
 
 $$
@@ -44,13 +58,13 @@ using LinearAlgebra, SparseArrays, Arpack, Random
 using Plots, Printf, LaTeXStrings
 using LsqFit
 
-theme(:dracula)
-# theme(:default)
+# theme(:dracula)
+theme(:default)
 default(background_color=:transparent, dpi=300)
 
 rng = MersenneTwister(42);
 
-Nmax = 12 # runs up to Nmax=16. Nmax=18 is a bit too much for my computers.
+Nmax = 16 # runs up to Nmax=16. Nmax=18 is a bit too much for my computers.
 ```
 
 We start by creating two functions which we will use a lot later:
@@ -119,12 +133,12 @@ function heisenberg_hamiltonian(N)
 
     for stateind in range(0, length = 2^N)
         for i in range(1, length = N)
-            j = mod(i,N)+1 # periodic boundary conditions
+            j = mod(i,N)+1
             si = ( stateind & 1<<(i-1) ) >> (i-1)
             sj = ( stateind & 1<<(j-1) ) >> (j-1)
 
             if si == sj
-                H[stateind+1,stateind+1] += 1/4 # indexing in Julia is 1-based !!!
+                H[stateind+1,stateind+1] += 1/4
             else
                 H[stateind+1,stateind+1] -= 1/4
                 stateind_flipped = flipspins(stateind,i,j)
