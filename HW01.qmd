@@ -151,7 +151,7 @@ function heisenberg_hamiltonian(N)
 end
 ```
 
-and a function which calculates the energy of a given stateL
+and a function which calculates the energy of a given state:
 
 ```{julia}
 #| label: function-energy-of-state
@@ -442,7 +442,7 @@ function spinspin_correlation(ψ::Vector{<:Number}, b::fixed_sz_basis, N::Intege
 
   corr = 0
   for (substateind, coeff) in enumerate(ψ)
-    stateind = b.states[substateind]
+    stateind = b.states[substateind] # <1>
     state = 2 .* index2state(stateind, N) .- 1
     corr += abs(coeff)^2 * state[1] * state[mod(x,N)+1]
   end
@@ -461,8 +461,8 @@ We will test the Spin-Spin correlation on the ground state of several Hamiltonia
 #| fig-subcap:
 #|   - "log-log plot for $g=0$"
 #|   - "log-log plot for $g=g_c$"
-#|   - "semilogy plot for $g=0.49$"
-#|   - "semilogy plot for $g=0.5$"
+#|   - "log-log plot for $g=0.49$"
+#|   - "log-log plot for $g=0.5$"
 N = Nmax
 D = 2^N
 J1 = 1.0
@@ -486,9 +486,9 @@ for (gind, g) in enumerate(garr)
     marker=:circle, xlabel="x", ylabel="Correlation") # <3>
   plot!(yaxis=:log, size=(250,200)) # <3>
 
-  # if g <= gc # <4>
+  if g <= gc # <4>
     plot!(xaxis=:log) # <4>
-  # end # <4>
+  end # <4>
 
   display(plt)
 end
