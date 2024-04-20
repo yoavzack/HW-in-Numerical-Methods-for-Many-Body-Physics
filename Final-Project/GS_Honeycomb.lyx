@@ -1,0 +1,676 @@
+#LyX 2.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 544
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin unavailable
+\textclass article
+\begin_preamble
+\newfontfamily\hebrewfont{Alef}
+\end_preamble
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman "default" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
+\font_default_family default
+\use_non_tex_fonts true
+\font_sc false
+\font_osf true
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\use_microtype true
+\use_dash_ligatures true
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\float_placement H
+\paperfontsize default
+\spacing single
+\use_hyperref true
+\pdf_bookmarks true
+\pdf_bookmarksnumbered false
+\pdf_bookmarksopen false
+\pdf_bookmarksopenlevel 1
+\pdf_breaklinks false
+\pdf_pdfborder false
+\pdf_colorlinks false
+\pdf_backref false
+\pdf_pdfusetitle true
+\papersize default
+\use_geometry true
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\use_minted 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 2cm
+\topmargin 2cm
+\rightmargin 2cm
+\bottommargin 2cm
+\headheight 3cm
+\headsep 3cm
+\footskip 3cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation skip
+\defskip smallskip
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
+\papercolumns 1
+\papersides 1
+\paperpagestyle fancy
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Honeycomb-AKLT Model's Ground State as PEPS
+\end_layout
+
+\begin_layout Author
+Yoav Zack 
+\begin_inset Formula $\varcopyright$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset include
+LatexCommand input
+filename "../../../../00/shortcuts.lyx"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Introduction: Honeycomb AKLT
+\end_layout
+
+\begin_layout Standard
+We want to calculate the PEPS representation of the ground state (GS) of
+ the AKLT model for spin-
+\begin_inset Formula $3/2$
+\end_inset
+
+ on a Honeycomb bipartite lattice.
+ According to 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "affleckRigorousResultsValencebond1987"
+literal "false"
+
+\end_inset
+
+ the GS is the projection on the spin-
+\begin_inset Formula $3/2$
+\end_inset
+
+ space of the collection of singlet-state on virtual spin-
+\begin_inset Formula $1/2$
+\end_inset
+
+ bonds between each real node of the lattice, so we will follow the procedure
+ outlined in Tutorial #4.
+\end_layout
+
+\begin_layout Standard
+We start by writing the Hamiltonian of the system (mostly for the record):
+\begin_inset Formula 
+\[
+H=\sum_{\left(i,j\right)\in\mathbb{B}}\left[\v S_{i}\pt\v S_{j}+\f{116}{243}\left(\v S_{i}\pt\v S_{j}\right)^{2}+\frac{16}{243}\left(\v S_{i}\pt\v S_{j}\right)^{3}\right]
+\]
+
+\end_inset
+
+According again to 
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset CommandInset citation
+LatexCommand cite
+key "affleckRigorousResultsValencebond1987"
+literal "false"
+
+\end_inset
+
+, for a single site composed of three spin-
+\begin_inset Formula $1/2$
+\end_inset
+
+ particles, the states are spanned by a basis which consists of the following
+ form:
+\begin_inset Formula 
+\[
+\w_{111},\w_{112}=\w_{121}=\w_{211},\w_{122}=\w_{212}=\w_{221},\w_{222}
+\]
+
+\end_inset
+
+Which are just all of the possible states of three spin-
+\begin_inset Formula $1/2$
+\end_inset
+
+ particles (up to a normalization of 
+\begin_inset Formula $\f 1{\s{3!}}$
+\end_inset
+
+), assuming the states are symmetric to spin switching.
+ That means a state 
+\begin_inset Formula $\e{\w}$
+\end_inset
+
+ is in general:
+\begin_inset Formula 
+\[
+\we=\w_{111}\e{\up\up\up}+\w_{112}\left(\e{\up\up\down}+\e{\up\down\up}+\e{\down\up\up}\right)+\w_{122}\left(\e{\up\down\down}+\e{\down\up\down}+\e{\down\down\up}\right)+\w_{222}\e{\down\down\down}
+\]
+
+\end_inset
+
+That means that the standard basis for the spin-
+\begin_inset Formula $3/2$
+\end_inset
+
+ corresponds to this one via:
+\begin_inset Formula 
+\begin{align*}
+\e{+\f 32} & =\f 1{\s 6}\w_{111} & \e{-\f 32} & =\f 1{\s 6}\w_{222}\\
+\e{+\f 12} & =\f 1{\s 2}\w_{112} & \e{-\f 12} & =\f 1{\s 2}\w_{122}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+ 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "orusPracticalIntroductionTensor2014"
+literal "false"
+
+\end_inset
+
+ section 5.2.2 the ground state of the system can be written as the projection
+ of singlet-bond state (SB) onto the symmetric subspace of three spin-
+\begin_inset Formula $1/2$
+\end_inset
+
+ spins.
+ The SB state (singlet on each bond on a Honeycomb lattice) is:
+\begin_inset Formula 
+\[
+\e{{\rm SB}}=\prod_{\left(i,j\right)\in\mathbb{B}}\f{\e{\down}_{i}\e{\up}_{j}-\e{\up}_{i}\e{\down}_{j}}{\s 2}
+\]
+
+\end_inset
+
+While the projection operator is:
+\begin_inset Formula 
+\[
+P_{{\rm sym}}=\e{\f 32}\q{\up\up\up}+\e{\f 12}\q U+\e{-\f 12}\q D+\e{-\f 32}\q{\down\down\down}
+\]
+
+\end_inset
+
+For:
+\begin_inset Formula 
+\[
+\begin{array}{cc}
+\e U & =\f 1{\s 3}\left(\e{\up\up\down}+\e{\up\down\up}+\e{\down\up\up}\right)\\
+\e D & =\f 1{\s 3}\left(\e{\down\down\up}+\e{\down\up\down}+\e{\up\down\down}\right)
+\end{array}
+\]
+
+\end_inset
+
+So the total ground state is:
+\begin_inset Formula 
+\[
+\we=P_{{\rm sym}}\e{{\rm SB}}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Conversion to PEPS
+\end_layout
+
+\begin_layout Standard
+We want to write the ground state as a PEPS, i.e.
+ in the following form:
+\begin_inset Formula 
+\[
+\we=\sum_{\left\{ \sigma\right\} \in\mathcal{C}}\prod_{i=1}^{N}A_{a_{i}b_{i}c_{i}\in\mathbb{B}}^{\sigma_{i}}\e{\left\{ \sigma\right\} }
+\]
+
+\end_inset
+
+Where we use the Einstein summation notation on double indices, and the
+ notation 
+\begin_inset Formula $a_{i}b_{i}c_{i}\in\mathbb{B}$
+\end_inset
+
+ indicates that each bond in 
+\begin_inset Formula $\mathbb{B}$
+\end_inset
+
+ implies a repeated index between two 
+\begin_inset Formula $A^{\sigma}$
+\end_inset
+
+ tensors, each index corresponding to the appropriate link index in each
+ tensor.
+\end_layout
+
+\begin_layout Standard
+To build the four 
+\begin_inset Formula $A^{\sigma},\sigma\in\left\{ \f 32,\f 12,-\f 12,-\f 32\right\} $
+\end_inset
+
+ tensors we will use the same scheme as outlined in the tutorial for the
+ standard AKLT model.
+ First, we start by defining a total state in terms of the virtual spins:
+\begin_inset Formula 
+\[
+\we=\sum_{\v a,\v b,\v c}c_{\v a,\v b,\v c}\e{\v a}\e{\v b}\e{\v c}
+\]
+
+\end_inset
+
+Where 
+\begin_inset Formula $\v a=\left(a_{1},\ldots,a_{N}\right)$
+\end_inset
+
+, 
+\begin_inset Formula $\v b=\left(b_{1},\ldots,b_{N}\right)$
+\end_inset
+
+, 
+\begin_inset Formula $\v c=\left(c_{1},\ldots,c_{N}\right)$
+\end_inset
+
+ are the three virtual spins in each of the 
+\begin_inset Formula $N$
+\end_inset
+
+ sites.
+ Now, we write a singlet matrix on each bond:
+\begin_inset Formula 
+\[
+\Sigma=\f 1{\s 2}\begin{pmatrix}0 & 1\\
+-1 & 0
+\end{pmatrix}
+\]
+
+\end_inset
+
+And write:
+\begin_inset Formula 
+\[
+\e{{\rm SB}}=\sum_{\v a,\v b,\v c}\left(\prod_{\left(a_{i},b_{j}\right)\in\mathbb{B}}\Sigma_{a_{i}b_{j}}\right)\e{\v a}\e{\v b}\e{\v c}
+\]
+
+\end_inset
+
+Next, we need to project those states onto the symmetric spin-
+\begin_inset Formula $3/2$
+\end_inset
+
+ states using the following four tensors:
+\begin_inset Formula 
+\[
+\begin{array}{cc}
+\Theta_{abc}^{3/2} & =\d_{a,\up}\d_{b,\up}\d_{c,\up}\\
+\Theta_{abc}^{1/2} & =\f 1{\s 3}\left(\d_{a,\up}\d_{b,\up}\d_{c,\down}+\d_{a,\up}\d_{b,\down}\d_{c,\up}+\d_{a,\down}\d_{b,\up}\d_{c,\up}\right)\\
+\Theta_{abc}^{-1/2} & =\f 1{\s 3}\left(\d_{a,\down}\d_{b,\down}\d_{c,\up}+\d_{a,\down}\d_{b,\up}\d_{c,\down}+\d_{a,\up}\d_{b,\down}\d_{c,\down}\right)\\
+\Theta_{abc}^{-3/2} & =\d_{a,\down}\d_{b,\down}\d_{c,\down}
+\end{array}
+\]
+
+\end_inset
+
+We project each site independently and get:
+\begin_inset Formula 
+\[
+\we=\sum_{\left\{ \sigma\right\} \in\mathcal{C}}\sum_{\left\{ a\right\} ,\left\{ b\right\} ,\left\{ c\right\} }\left(\prod_{i=1}^{N}\Theta_{a_{i}b_{i}c_{i}}^{\sigma_{i}}\e{\sigma_{i}}\q{a_{i}}\q{b_{i}}\q{c_{i}}\right)\left(\prod_{\left(a_{i},b_{j}\right)\in\mathbb{B}}\Sigma_{a_{i}b_{j}}\right)\e{\left\{ a\right\} ,\left\{ b\right\} ,\left\{ c\right\} }
+\]
+
+\end_inset
+
+Where 
+\begin_inset Formula $\e{\left\{ a\right\} }=\bigotimes_{i\in N}\e{a_{i}}$
+\end_inset
+
+ and the sum over 
+\begin_inset Formula $\left\{ a\right\} $
+\end_inset
+
+ includes all of the possible configurations of 
+\begin_inset Formula $a_{i}\in\left\{ a\right\} $
+\end_inset
+
+, and the same of 
+\begin_inset Formula $\left\{ b\right\} ,\left\{ c\right\} $
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+We can simplify this expression:
+\begin_inset Formula 
+\[
+\we=\sum_{\left\{ \sigma\right\} \in\mathcal{C}}\sum_{\left\{ a\right\} ,\left\{ b\right\} ,\left\{ c\right\} }\left(\prod_{\left(a_{i},b_{j}\right)\in\mathbb{B}}\Sigma_{a_{i}b_{j}}\right)\left(\prod_{i=1}^{N}\Theta_{a_{i}b_{i}c_{i}}^{\sigma_{i}}\right)\e{\left\{ \sigma\right\} }
+\]
+
+\end_inset
+
+In order to define the 
+\begin_inset Formula $A^{\sigma}$
+\end_inset
+
+ tensors we will need to define some form of 
+\begin_inset Formula $\Sigma\Theta$
+\end_inset
+
+ as shown in the tutorial.
+ There we can associate each bond with a site and thus we have the same
+ number of 
+\begin_inset Formula $\Sigma$
+\end_inset
+
+ and 
+\begin_inset Formula $M$
+\end_inset
+
+ matrices.
+ Here, we will have to identify each two bonds with a site in order to have
+ the same number of 
+\begin_inset Formula $\Sigma\pt\Sigma$
+\end_inset
+
+ and 
+\begin_inset Formula $\Theta$
+\end_inset
+
+ tensors.
+ Doing so in general will be difficult, so we will start to talk about specific
+ configurations now.
+\end_layout
+
+\begin_layout Section
+Geometric Considerations
+\end_layout
+
+\begin_layout Standard
+We start by thinking of a single hexagon with OBC.
+ There the PEPS is very simple:
+\begin_inset Formula 
+\begin{align*}
+\we & =\sum_{\left\{ \sigma\right\} \in\mathcal{C}}\sum_{\left\{ a\right\} ,\left\{ b\right\} ,\left\{ c\right\} }\left(\Theta_{a_{1}b_{1}c_{1}}^{\sigma_{1}}\Sigma_{c_{1}a_{2}}\cdots\Theta_{a_{6}b_{6}c_{6}}^{\sigma_{6}}\Sigma_{c_{6}a_{1}}\right)\e{\left\{ \sigma\right\} }\\
+ & =\sum_{\left\{ \sigma\right\} \in\mathcal{C}}\sum_{\left\{ b\right\} }{\rm Tr}\left\{ \Theta_{b_{1}}^{\sigma_{1}}\Sigma\cdots\Theta_{b_{6}}^{\sigma_{6}}\Sigma\right\} \e{\left\{ \sigma\right\} }
+\end{align*}
+
+\end_inset
+
+We can define 
+\begin_inset Formula $A_{b}^{\sigma}=\Theta_{b}^{\sigma}\Sigma$
+\end_inset
+
+ and get the final PEPS:
+\begin_inset Formula 
+\[
+\we=\sum_{\left\{ \sigma\right\} \in\mathcal{C}}\sum_{\left\{ b\right\} }{\rm Tr}\left\{ A_{b_{1}}^{\sigma_{1}}\cdots A_{b_{6}}^{\sigma_{6}}\right\} \e{\left\{ \sigma\right\} }
+\]
+
+\end_inset
+
+Note that since this has OBC we have one physical leg (
+\begin_inset Formula $\sigma$
+\end_inset
+
+) and one virtual leg (
+\begin_inset Formula $b$
+\end_inset
+
+) for each tensor.
+\end_layout
+
+\begin_layout Section
+Calculation of Expectation values
+\end_layout
+
+\begin_layout Standard
+We want to calculate some expectation values.
+ For example:
+\begin_inset Formula 
+\[
+\left\langle S_{1}\right\rangle =\qw S_{1}\we
+\]
+
+\end_inset
+
+We substitute, for example, the PEPS of the single OBC hexagon:
+\begin_inset Formula 
+\begin{align*}
+\left\langle S_{1}\right\rangle  & =\left[\sum_{\left\{ \sigma\right\} \in\mathcal{C}}\sum_{\left\{ b\right\} }{\rm Tr}\left\{ A_{b_{1}}^{\sigma_{1}}\cdots A_{b_{6}}^{\sigma_{6}}\right\} \e{\left\{ \sigma\right\} }\right]^{T}S_{1}\left[\sum_{\left\{ \pl{\sigma}\right\} \in\mathcal{C}}\sum_{\left\{ \pl b\right\} }{\rm Tr}\left\{ A_{\pl{b_{1}}}^{\pl{\sigma_{1}}}\cdots A_{\pl{b_{6}}}^{\pl{\sigma_{6}}}\right\} \e{\left\{ \pl{\sigma}\right\} }\right]\\
+ & =\sum_{\left\{ \sigma\right\} ,\left\{ \pl{\sigma}\right\} }\sum_{\left\{ b\right\} \left\{ \pl b\right\} }{\rm Tr}\left\{ A_{b_{1}}^{\sigma_{1}}\cdots A_{b_{6}}^{\sigma_{6}}\right\} {\rm Tr}\left\{ A_{\pl{b_{1}}}^{\pl{\sigma_{1}}}\cdots A_{\pl{b_{6}}}^{\pl{\sigma_{6}}}\right\} \qwe{\sigma_{1}}{S_{1}}{\pl{\sigma_{1}}}\\
+ & =\sum_{\left\{ \sigma\right\} ,\left\{ \pl{\sigma}\right\} }\sum_{\left\{ b\right\} \left\{ \pl b\right\} }{\rm Tr}\left\{ A_{b_{1}}^{\sigma_{1}}\cdots A_{b_{6}}^{\sigma_{6}}\right\} {\rm Tr}\left\{ A_{\pl{b_{1}}}^{\pl{\sigma_{1}}}\cdots A_{\pl{b_{6}}}^{\pl{\sigma_{6}}}\right\} \left(S_{1}\right)_{\sigma_{1}\pl{\sigma_{1}}}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Section
+Conversion to PEPS
+\end_layout
+
+\begin_layout Plain Layout
+The GS we found is in terms of a standard wavefunction, but we want to convert
+ it into a PEPS structure in order to easily calculate local expectation
+ values.
+ In general, the result should be of the following form:
+\begin_inset Formula 
+\[
+\we=\sum_{\left\{ \sigma\right\} \in\mathcal{C}}\prod_{\sigma\in c}A_{ijk\in\mathbb{B}}^{\sigma}\e{\left\{ \sigma\right\} }
+\]
+
+\end_inset
+
+Where 
+\begin_inset Formula $\left\{ \sigma\right\} \equiv\left\{ \sigma_{1},\ldots,\sigma_{N}\right\} $
+\end_inset
+
+ for 
+\begin_inset Formula $N$
+\end_inset
+
+ the number of physical spins in the Honeycomb.
+ The tensors 
+\begin_inset Formula $A^{\sigma}$
+\end_inset
+
+ are a collection of four 3-dimentional tensors, one for each value of 
+\begin_inset Formula $\sigma\in\left\{ -\f 32,-\f 12,\f 12,\f 32\right\} $
+\end_inset
+
+.
+ Note that since the projection of three spin-
+\begin_inset Formula $1/2$
+\end_inset
+
+ particles on the 
+\begin_inset Formula $\sigma=0$
+\end_inset
+
+ space is vanishing, we expect 
+\begin_inset Formula $A_{ijk}^{\sigma=0}=0$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Plain Layout
+This is just a mock-up of the true PEPS, since the indices 
+\begin_inset Formula $i,j,k$
+\end_inset
+
+ are nontrivial to write because of the hexagonal structure of the lattice.
+ The writing indicates that each 
+\begin_inset Formula $A^{\sigma}$
+\end_inset
+
+ corresponds to a specific site on the lattice, and its indices should each
+ correspond to a single bond this site has with its neighbors.
+ I.e., each pair of 
+\begin_inset Formula $A^{\sigma}$
+\end_inset
+
+ which correspond to neighboring sites should have a single common index
+ which indicates their bond.
+\end_layout
+
+\begin_layout Plain Layout
+We want to calculate those 
+\begin_inset Formula $A^{\sigma}$
+\end_inset
+
+ tensors, and to do that we follow the process outlined in the construction
+ of the simple AKLT as MPS in the tutorial.
+ The matrices 
+\begin_inset Formula $\Sigma_{ab}$
+\end_inset
+
+ are the same, but now they have three indices:
+\begin_inset Formula 
+\[
+\Xi_{abc}=\f 1{\s 2}\ep_{abc}
+\]
+
+\end_inset
+
+This is the trivial extension of anti symmetric state to three indices.
+\end_layout
+
+\begin_layout Plain Layout
+Next, we have the set of projection matrices, which is quite different:
+\begin_inset Formula 
+\[
+\begin{array}{cc}
+\Theta_{abc}^{3/2} & =\d_{a,\up}\d_{b,\up}\d_{c,\up}\\
+\Theta_{abc}^{1/2} & =\f 1{\s 3}\left(\d_{a,\up}\d_{b,\up}\d_{c,\down}+\d_{a,\up}\d_{b,\down}\d_{c,\up}+\d_{a,\down}\d_{b,\up}\d_{c,\up}\right)\\
+\Theta_{abc}^{-1/2} & =\f 1{\s 3}\left(\d_{a,\down}\d_{b,\down}\d_{c,\up}+\d_{a,\down}\d_{b,\up}\d_{c,\down}+\d_{a,\up}\d_{b,\down}\d_{c,\down}\right)\\
+\Theta_{abc}^{-3/2} & =\d_{a,\down}\d_{b,\down}\d_{c,\down}
+\end{array}
+\]
+
+\end_inset
+
+So the total matrices are:
+\begin_inset Formula 
+\[
+A_{abc}^{\sigma}\propto\Theta_{abc}^{\sigma}\Xi_{abc}
+\]
+
+\end_inset
+
+Why not equality? well, in the tutorial they also add a normalization constant.
+\end_layout
+
+\begin_layout Section
+Geometric Consideration
+\end_layout
+
+\begin_layout Plain Layout
+We want to define the hexagonal lattice we will work on.
+ We will start with a single hexagon, for which:
+\begin_inset Formula 
+\[
+\we=\sum_{\left\{ \sigma\right\} \in\mathcal{C}}\prod_{\alpha=1}^{6}\d_{k_{\alpha}i_{\alpha+1}}A_{i_{\alpha}j_{\alpha}k_{\alpha}}^{\sigma_{\alpha}}\e{\left\{ \sigma\right\} }
+\]
+
+\end_inset
+
+To have two hexagons, we will use two hexagonal wavefunctions, and connect
+ them:
+\begin_inset Formula 
+\[
+\we=\sum_{\left\{ \sigma\right\} \in\mathcal{C}}\left[\left(\prod_{\alpha=1}^{6}\d_{k_{\alpha}i_{\alpha+1}}A_{i_{\alpha}j_{\alpha}k_{\alpha}}^{\sigma_{\alpha}}\right)\left(\prod_{\beta=1}^{6}\d_{k_{\beta}i_{\beta+1}}A_{i_{\beta}j_{\beta}k_{\beta}}^{\sigma_{\beta}}\right)\d_{j_{\alpha=5}j_{\beta=3}}\d_{j_{\alpha=6}j_{\beta=2}}\right]\e{\left\{ \sigma\right\} }
+\]
+
+\end_inset
+
+Here we assumed the sites are numbered in each hexagon from the top in clockwise
+ direction.
+ The amount of links grows with the number of hexagons.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset bibtex
+LatexCommand bibtex
+btprint "btPrintCited"
+bibfiles "../../../../Obsidian-Vaults/MyLibrary"
+options "plain"
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document
