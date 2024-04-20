@@ -2,3 +2,4 @@
 .jupyter_cache
 *_files*
 .ipynb_checkpoints
+*.lyx~
