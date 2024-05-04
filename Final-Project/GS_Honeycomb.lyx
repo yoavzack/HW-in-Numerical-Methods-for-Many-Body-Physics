@@ -112,7 +112,7 @@ Yoav Zack
 \begin_layout Standard
 \begin_inset CommandInset include
 LatexCommand input
-filename "../../../../00/shortcuts.lyx"
+filename "../../../../../00/shortcuts.lyx"
 
 \end_inset
 
@@ -189,7 +189,7 @@ Which are just all of the possible states of three spin-
 \end_inset
 
  particles (up to a normalization of 
-\begin_inset Formula $\f 1{\s{3!}}$
+\begin_inset Formula $\f1{\s{3!}}$
 \end_inset
 
 ), assuming the states are symmetric to spin switching.
@@ -212,8 +212,8 @@ That means that the standard basis for the spin-
  corresponds to this one via:
 \begin_inset Formula 
 \begin{align*}
-\e{+\f 32} & =\f 1{\s 6}\w_{111} & \e{-\f 32} & =\f 1{\s 6}\w_{222}\\
-\e{+\f 12} & =\f 1{\s 2}\w_{112} & \e{-\f 12} & =\f 1{\s 2}\w_{122}
+\e{+\f32} & =\f1{\s6}\w_{111} & \e{-\f32} & =\f1{\s6}\w_{222}\\
+\e{+\f12} & =\f1{\s2}\w_{112} & \e{-\f12} & =\f1{\s2}\w_{122}
 \end{align*}
 
 \end_inset
@@ -351,7 +351,7 @@ Where
 And write:
 \begin_inset Formula 
 \[
-\e{{\rm SB}}=\sum_{\v a,\v b,\v c}\left(\prod_{\left(a_{i},b_{j}\right)\in\mathbb{B}}\Sigma_{a_{i}b_{j}}\right)\e{\v a}\e{\v b}\e{\v c}
+\e{{\rm SB}}=\sum_{\v a,\v b,\v c}\left(\prod_{\left(i,j\right)\in\mathbb{B}}\Sigma_{ij}\right)\e{\v a}\e{\v b}\e{\v c}
 \]
 
 \end_inset
@@ -469,15 +469,45 @@ We can define
 
 \end_inset
 
-Note that since this has OBC we have one physical leg (
-\begin_inset Formula $\sigma$
+If we assume also that there's a third site next to one of the original
+ hexagon's sites we get:
+\begin_inset Formula 
+\begin{align*}
+\we & =\sum_{\left\{ \sigma\right\} \in\mathcal{C}}\sum_{\left\{ a\right\} ,\left\{ b\right\} ,\left\{ c\right\} }\left(\Theta_{a_{1}b_{1}c_{1}}^{\sigma_{1}}\Sigma_{c_{1}a_{2}}\cdots\Theta_{a_{6}b_{6}c_{6}}^{\sigma_{6}}\Sigma_{c_{6}a_{1}}\pt\Sigma_{b_{1}a_{7}}\right)\e{\left\{ \sigma\right\} }\\
+ & =\sum_{\left\{ \sigma\right\} \in\mathcal{C}}\sum_{\left\{ a\right\} ,\left\{ b\right\} ,\left\{ c\right\} }\left(A^{\sigma_{1}}A_{b_{2}}^{\sigma_{2}}\cdots A_{b_{6}}^{\sigma_{6}}\right)\e{\left\{ \sigma\right\} }
+\end{align*}
+
 \end_inset
 
-) and one virtual leg (
-\begin_inset Formula $b$
+so, for every site the amount of virtual indices depends on the number of
+ connected sites, and the tensor is:
+\begin_inset Formula 
+\[
+A=\begin{cases}
+A_{ab\pl c}^{\sigma}=\Theta_{abc}^{\sigma}\Sigma_{c\pl c} & \text{1 site}\\
+A_{a\pl b\pl c}^{\sigma}=\Theta_{abc}^{\sigma}\Sigma_{b\pl b}\Sigma_{c\pl c} & \text{2 site}\\
+A_{\pl a\pl b\pl c}^{\sigma}=\Theta_{abc}^{\sigma}\Sigma_{a\pl a}\Sigma_{b\pl b}\Sigma_{c\pl c} & \text{3 site}
+\end{cases}
+\]
+
 \end_inset
 
-) for each tensor.
+Where the primed indices indicate indices of other sites.
+ So, in order to build the PEPS we have to define different kinds of 
+\begin_inset Formula $A$
+\end_inset
+
+ tensors, according to the number of connections.
+\end_layout
+
+\begin_layout Standard
+But there's a problem! in this configuration, we have too much 
+\begin_inset Formula $\Sigma$
+\end_inset
+
+ matrices, since we double count bonds.
+ so, instead, we have to assign each bond to a specific site, and work with
+ that to define the tensors.
 \end_layout
 
 \begin_layout Section
@@ -541,7 +571,7 @@ Where
 \end_inset
 
  are a collection of four 3-dimentional tensors, one for each value of 
-\begin_inset Formula $\sigma\in\left\{ -\f 32,-\f 12,\f 12,\f 32\right\} $
+\begin_inset Formula $\sigma\in\left\{ -\f32,-\f12,\f12,\f32\right\} $
 \end_inset
 
 .
@@ -594,7 +624,7 @@ We want to calculate those
  are the same, but now they have three indices:
 \begin_inset Formula 
 \[
-\Xi_{abc}=\f 1{\s 2}\ep_{abc}
+\Xi_{abc}=\f1{\s2}\ep_{abc}
 \]
 
 \end_inset
@@ -608,8 +638,8 @@ Next, we have the set of projection matrices, which is quite different:
 \[
 \begin{array}{cc}
 \Theta_{abc}^{3/2} & =\d_{a,\up}\d_{b,\up}\d_{c,\up}\\
-\Theta_{abc}^{1/2} & =\f 1{\s 3}\left(\d_{a,\up}\d_{b,\up}\d_{c,\down}+\d_{a,\up}\d_{b,\down}\d_{c,\up}+\d_{a,\down}\d_{b,\up}\d_{c,\up}\right)\\
-\Theta_{abc}^{-1/2} & =\f 1{\s 3}\left(\d_{a,\down}\d_{b,\down}\d_{c,\up}+\d_{a,\down}\d_{b,\up}\d_{c,\down}+\d_{a,\up}\d_{b,\down}\d_{c,\down}\right)\\
+\Theta_{abc}^{1/2} & =\f1{\s3}\left(\d_{a,\up}\d_{b,\up}\d_{c,\down}+\d_{a,\up}\d_{b,\down}\d_{c,\up}+\d_{a,\down}\d_{b,\up}\d_{c,\up}\right)\\
+\Theta_{abc}^{-1/2} & =\f1{\s3}\left(\d_{a,\down}\d_{b,\down}\d_{c,\up}+\d_{a,\down}\d_{b,\up}\d_{c,\down}+\d_{a,\up}\d_{b,\down}\d_{c,\down}\right)\\
 \Theta_{abc}^{-3/2} & =\d_{a,\down}\d_{b,\down}\d_{c,\down}
 \end{array}
 \]
