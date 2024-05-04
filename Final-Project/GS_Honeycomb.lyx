@@ -508,6 +508,12 @@ But there's a problem! in this configuration, we have too much
  matrices, since we double count bonds.
  so, instead, we have to assign each bond to a specific site, and work with
  that to define the tensors.
+ Note that this means we need more then the number of connected sites to
+ determine the matrix 
+\begin_inset Formula $A$
+\end_inset
+
+: we also need to know in which index is each bond connected.
 \end_layout
 
 \begin_layout Section
