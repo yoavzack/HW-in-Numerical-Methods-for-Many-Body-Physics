@@ -3,3 +3,4 @@
 *_files*
 .ipynb_checkpoints
 *.lyx~
+*.lyx#
